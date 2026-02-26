@@ -1,0 +1,94 @@
+{{! Search Modal Partial }}
+<div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header border-0 pb-2 modal-header-gradient">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-search me-2"></i>Search Products
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <form action="/products/search" method="GET">
+          {{! Search Input }}
+          <div class="mb-4">
+            <label for="searchInput" class="form-label fw-bold">
+              <i class="bi bi-pencil-square me-1"></i>Search Keywords
+            </label>
+            <input
+              class="form-control form-control-lg"
+              type="search"
+              name="q"
+              placeholder="Type product name or category..."
+              id="searchInput"
+              autofocus
+              required
+            />
+          </div>
+
+          {{! Search Logic }}
+          <div class="mb-4">
+            <label class="form-label fw-bold">
+              <i class="bi bi-filter me-1"></i>Search Mode
+            </label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="logic"
+                  id="logicAnd"
+                  value="and"
+                  checked
+                />
+                <label class="form-check-label" for="logicAnd">
+                  <strong>AND</strong>
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="logic"
+                  id="logicOr"
+                  value="or"
+                />
+                <label class="form-check-label" for="logicOr">
+                  <strong>OR</strong>
+                </label>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-2">
+              <i class="bi bi-info-circle"></i>
+              <strong>AND:</strong>
+              Results must contain all keywords.
+              <strong>OR:</strong>
+              Results contain at least one keyword.
+            </small>
+          </div>
+
+          {{! Action Buttons }}
+          <div class="d-flex gap-2">
+            <button
+              class="btn btn-lg fw-bold flex-fill shadow-sm btn-search-submit"
+              type="submit"
+            >
+              <i class="bi bi-search me-2"></i>Search
+            </button>
+            <button
+              class="btn btn-lg btn-outline-secondary"
+              type="button"
+              data-bs-dismiss="modal"
+            >
+              <i class="bi bi-x-circle me-1"></i>Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
