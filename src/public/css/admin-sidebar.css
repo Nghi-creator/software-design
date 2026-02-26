@@ -64,3 +64,48 @@
   box-shadow: 0 0.5rem 1rem rgba(220, 53, 69, 0.15) !important;
   border-color: #dc3545 !important;
 }
+
+body.admin-mode {
+  background-color: #f4f6f9;
+}
+
+.admin-mode .admin-navbar {
+  background-color: #212529;
+  z-index: 1030;
+}
+
+.admin-mode .sidebar-container {
+  min-height: calc(100vh - 56px);
+  background-color: #fff;
+  border-right: 1px solid #dee2e6;
+}
+
+.admin-mode .admin-main-content {
+  padding: 20px;
+}
+
+.admin-mode .site-header {
+  z-index: 9998 !important;
+}
+
+.admin-mode .site-header .navbar {
+  z-index: 9998 !important;
+  overflow: visible !important;
+}
+
+.admin-mode .site-header .navbar-collapse {
+  overflow: visible !important;
+}
+
+.admin-mode .site-header .offcanvas-body {
+  overflow: visible !important;
+}
+
+.admin-mode .site-header .dropdown-menu {
+  z-index: 99999 !important;
+  position: absolute !important;
+}
+
+.admin-mode .site-header .dropdown-submenu > .dropdown-menu {
+  z-index: 99999 !important;
+}
