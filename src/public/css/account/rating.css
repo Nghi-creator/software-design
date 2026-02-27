@@ -1,5 +1,5 @@
 .rating-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, #764ba2 100%);
     color: white;
     padding: 2rem 0;
     margin-bottom: 2rem;
@@ -27,7 +27,7 @@
     font-size: 4rem;
     font-weight: bold;
     line-height: 1;
-    color: #667eea;
+    color: var(--primary-color);
 }
 
 .star-display {
@@ -41,11 +41,11 @@
 }
 
 .review-item.positive {
-    border-left-color: #28a745;
+    border-left-color: var(--success-color);
 }
 
 .review-item.negative {
-    border-left-color: #dc3545;
+    border-left-color: var(--danger-color);
 }
 
 .review-item:hover {
@@ -82,12 +82,12 @@
 }
 
 .stat-icon.purple {
-    background-color: rgba(102, 126, 234, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 .stat-icon.purple i {
     font-size: 2rem;
-    color: #667eea;
+    color: var(--primary-color);
 }
 
 .stat-icon.green {
@@ -96,7 +96,7 @@
 
 .stat-icon.green i {
     font-size: 2rem;
-    color: #28a745;
+    color: var(--success-color);
 }
 
 .stat-icon.red {
@@ -105,7 +105,7 @@
 
 .stat-icon.red i {
     font-size: 2rem;
-    color: #dc3545;
+    color: var(--danger-color);
 }
 
 .reviewer-avatar {
@@ -115,24 +115,24 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background-color: rgba(102, 126, 234, 0.1);
+    background-color: rgba(var(--primary-rgb), 0.1);
 }
 
 .reviewer-avatar i {
-    color: #667eea;
+    color: var(--primary-color);
     font-size: 1.5rem;
 }
 
 .product-icon {
-    color: #667eea;
+    color: var(--primary-color);
 }
 
 .list-icon {
-    color: #667eea;
+    color: var(--primary-color);
 }
 
 .empty-icon {
     font-size: 4rem;
     opacity: 0.2;
-    color: #667eea;
+    color: var(--primary-color);
 }
