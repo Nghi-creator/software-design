@@ -6,9 +6,10 @@
 @import url('../shared/sidebar-shared.css');
 
 :root {
-  --sidebar-accent-color: #dc3545;
+  --sidebar-accent-color: var(--danger-color);
   --sidebar-accent-hover: #c82333;
-  --sidebar-accent-rgb: 220, 53, 69;
+  /* Bootstrap standard hover */
+  --sidebar-accent-rgb: var(--danger-rgb);
 }
 
 body.admin-mode {
@@ -52,6 +53,6 @@ body.admin-mode {
   position: absolute !important;
 }
 
-.admin-mode .site-header .dropdown-submenu > .dropdown-menu {
+.admin-mode .site-header .dropdown-submenu>.dropdown-menu {
   z-index: 99999 !important;
 }
