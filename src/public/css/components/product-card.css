@@ -1,0 +1,26 @@
+/* ============================================
+   PRODUCT CARD STYLES
+   ============================================ */
+
+.product-card {
+  transition: all 0.3s ease;
+  border: 1px solid #dee2e6;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+
+.product-card .image-holder {
+  overflow: hidden;
+  background: #f8f9fa;
+}
+
+.product-card .image-holder img {
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .image-holder img {
+  transform: scale(1.1);
+}
