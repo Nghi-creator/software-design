@@ -76,3 +76,23 @@ export const AuctionEmailTemplates = {
     );
   },
 };
+
+export const EmailTemplates = {
+    otpEmail: (otpCode) => `
+        <div style="font-family: Arial; max-width: 600px; margin: auto;">
+            <h2 style="color: #4A90E2;">Your Verification Code</h2>
+            <div style="background: #f4f4f4; padding: 20px; font-size: 24px; letter-spacing: 5px; text-align: center;">
+                <strong>${otpCode}</strong>
+            </div>
+            <p>This code expires in 5 minutes.</p>
+        </div>
+    `,
+    adminResetPassword: (fullname, defaultPassword) => `
+        <div style="font-family: Arial; max-width: 600px; margin: auto;">
+            <h2 style="color: #333;">Password Reset Notification</h2>
+            <p>Dear <strong>${fullname}</strong>,</p>
+            <p>Your new temporary password is: <strong style="color:red; font-size: 20px;">${defaultPassword}</strong></p>
+            <p>Please log in and change this immediately.</p>
+        </div>
+    `
+};

@@ -1,9 +1,8 @@
 import express from 'express';
 import * as productModel from '../../models/product.model.js';
 import * as userModel from '../../models/user.model.js';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { uploadMiddleware } from '../../middlewares/upload.mdw.js';
+import { FileService } from '../../services/file.service.js';
 
 const router = express.Router();
 
@@ -67,31 +66,10 @@ router.post('/add', async function (req, res) {
     // console.log('productData:', productData);
     const returnedID = await productModel.addProduct(productData);
 
-    const dirPath = path.join('public', 'images', 'products').replace(/\\/g, "/");
-
     const imgs = JSON.parse(product.imgs_list);
+    const { savedMainPath, newImgPaths } = FileService.moveAndRenameProductImages(returnedID[0].id, product.thumbnail, imgs);
 
-    // Move and rename thumbnail
-    const mainPath = path.join(dirPath, `p${returnedID[0].id}_thumb.jpg`).replace(/\\/g, "/");
-    const oldMainPath = path.join('public', 'uploads', path.basename(product.thumbnail)).replace(/\\/g, "/");
-    const savedMainPath = '/' + path.join('images', 'products', `p${returnedID[0].id}_thumb.jpg`).replace(/\\/g, "/");
-    fs.renameSync(oldMainPath, mainPath);
     await productModel.updateProductThumbnail(returnedID[0].id, savedMainPath);
-
-    // Move and rename subimages 
-    let i = 1;
-    let newImgPaths = [];
-    for (const imgPath of imgs) {
-        const oldPath = path.join('public', 'uploads', path.basename(imgPath)).replace(/\\/g, "/");
-        const newPath = path.join(dirPath, `p${returnedID[0].id}_${i}.jpg`).replace(/\\/g, "/");
-        const savedPath = '/' + path.join('images', 'products', `p${returnedID[0].id}_${i}.jpg`).replace(/\\/g, "/");
-        fs.renameSync(oldPath, newPath);
-        newImgPaths.push({
-            product_id: returnedID[0].id,
-            img_link: savedPath
-        });
-        i++;
-    }
     await productModel.addProductImages(newImgPaths);
     res.redirect('/admin/products/list');
 });
@@ -129,26 +107,14 @@ router.post('/delete', async (req, res) => {
     res.redirect('/admin/products/list');
 });
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/uploads/');
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname);
-    }
-});
-
-const upload = multer({ storage: storage });
-
-router.post('/upload-thumbnail', upload.single('thumbnail'), async function (req, res) {
+router.post('/upload-thumbnail', uploadMiddleware.single('thumbnail'), async function (req, res) {
     res.json({
         success: true,
         file: req.file
     });
 });
 
-router.post('/upload-subimages', upload.array('images', 10), async function (req, res) {
+router.post('/upload-subimages', uploadMiddleware.array('images', 10), async function (req, res) {
     res.json({
         success: true,
         files: req.files
