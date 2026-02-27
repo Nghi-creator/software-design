@@ -16,6 +16,21 @@ import db from '../utils/db.js';
  * 7. cancelled: Đơn hàng bị hủy
  */
 
+const getBaseOrderDetailsQuery = () => {
+  return db('orders')
+    .leftJoin('products', 'orders.product_id', 'products.id')
+    .leftJoin('users as buyer', 'orders.buyer_id', 'buyer.id')
+    .leftJoin('users as seller', 'orders.seller_id', 'seller.id')
+    .leftJoin('categories', 'products.category_id', 'categories.id')
+    .select(
+      'orders.*', 'products.name as product_name', 'products.thumbnail as product_thumbnail',
+      'products.end_at as product_end_at', 'products.closed_at as product_closed_at',
+      'categories.name as category_name', 'buyer.id as buyer_id', 'buyer.fullname as buyer_name',
+      'buyer.email as buyer_email', 'seller.id as seller_id', 'seller.fullname as seller_name',
+      'seller.email as seller_email'
+    );
+};
+
 /**
  * Tạo order mới (thường được trigger tự động tạo)
  */
@@ -67,54 +82,14 @@ export async function findByProductId(productId) {
  * Lấy order kèm thông tin đầy đủ (product, buyer, seller)
  */
 export async function findByIdWithDetails(orderId) {
-  return db('orders')
-    .leftJoin('products', 'orders.product_id', 'products.id')
-    .leftJoin('users as buyer', 'orders.buyer_id', 'buyer.id')
-    .leftJoin('users as seller', 'orders.seller_id', 'seller.id')
-    .leftJoin('categories', 'products.category_id', 'categories.id')
-    .where('orders.id', orderId)
-    .select(
-      'orders.*',
-      'products.name as product_name',
-      'products.thumbnail as product_thumbnail',
-      'products.end_at as product_end_at',
-      'products.closed_at as product_closed_at',
-      'categories.name as category_name',
-      'buyer.id as buyer_id',
-      'buyer.fullname as buyer_name',
-      'buyer.email as buyer_email',
-      'seller.id as seller_id',
-      'seller.fullname as seller_name',
-      'seller.email as seller_email'
-    )
-    .first();
+  return getBaseOrderDetailsQuery().where('orders.id', orderId).first();
 }
 
 /**
  * Lấy order theo product_id kèm thông tin đầy đủ
  */
 export async function findByProductIdWithDetails(productId) {
-  return db('orders')
-    .leftJoin('products', 'orders.product_id', 'products.id')
-    .leftJoin('users as buyer', 'orders.buyer_id', 'buyer.id')
-    .leftJoin('users as seller', 'orders.seller_id', 'seller.id')
-    .leftJoin('categories', 'products.category_id', 'categories.id')
-    .where('orders.product_id', productId)
-    .select(
-      'orders.*',
-      'products.name as product_name',
-      'products.thumbnail as product_thumbnail',
-      'products.end_at as product_end_at',
-      'products.closed_at as product_closed_at',
-      'categories.name as category_name',
-      'buyer.id as buyer_id',
-      'buyer.fullname as buyer_name',
-      'buyer.email as buyer_email',
-      'seller.id as seller_id',
-      'seller.fullname as seller_name',
-      'seller.email as seller_email'
-    )
-    .first();
+  return getBaseOrderDetailsQuery().where('orders.product_id', productId).first();
 }
 
 /**
@@ -152,71 +127,29 @@ export async function findByBuyerId(buyerId) {
 }
 
 /**
- * Cập nhật trạng thái order
+ * Cập nhật order với dữ liệu đã được chuẩn bị sẵn từ Service
  */
-export async function updateStatus(orderId, newStatus, userId, note = null) {
+export async function updateOrderData(orderId, updateData, userId, note = null) {
   const trx = await db.transaction();
-  
   try {
-    // Lấy trạng thái cũ
-    const order = await trx('orders')
-      .where('id', orderId)
-      .first();
-    
-    if (!order) {
-      throw new Error('Order not found');
-    }
+    const order = await trx('orders').where('id', orderId).first();
+    if (!order) throw new Error('Order not found');
 
-    const oldStatus = order.status;
-    
-    // Cập nhật order
-    const updateData = {
-      status: newStatus,
+    await trx('orders').where('id', orderId).update({
+      ...updateData,
       updated_at: db.fn.now()
-    };
+    });
 
-    // Cập nhật timestamp tương ứng
-    switch (newStatus) {
-      case 'payment_submitted':
-        updateData.payment_submitted_at = db.fn.now();
-        break;
-      case 'payment_confirmed':
-        updateData.payment_confirmed_at = db.fn.now();
-        break;
-      case 'shipped':
-        updateData.shipped_at = db.fn.now();
-        break;
-      case 'delivered':
-        updateData.delivered_at = db.fn.now();
-        break;
-      case 'completed':
-        updateData.completed_at = db.fn.now();
-        break;
-      case 'cancelled':
-        updateData.cancelled_at = db.fn.now();
-        updateData.cancelled_by = userId;
-        if (note) {
-          updateData.cancellation_reason = note;
-        }
-        break;
-    }
-
-    await trx('orders')
-      .where('id', orderId)
-      .update(updateData);
-
-    // Ghi log vào order_status_history
     await trx('order_status_history').insert({
       order_id: orderId,
-      from_status: oldStatus,
-      to_status: newStatus,
+      from_status: order.status,
+      to_status: updateData.status,
       changed_by: userId,
       note: note,
       created_at: db.fn.now()
     });
 
     await trx.commit();
-    
     return findById(orderId);
   } catch (error) {
     await trx.rollback();
@@ -272,7 +205,13 @@ export async function updateTracking(orderId, trackingData) {
  * Hủy order
  */
 export async function cancelOrder(orderId, userId, reason) {
-  return updateStatus(orderId, 'cancelled', userId, reason);
+  const updateData = {
+    status: 'cancelled',
+    cancelled_at: db.fn.now(),
+    cancelled_by: userId,
+    cancellation_reason: reason
+  };
+  return updateOrderData(orderId, updateData, userId, reason);
 }
 
 /**

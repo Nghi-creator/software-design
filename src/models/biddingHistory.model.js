@@ -31,7 +31,7 @@ export async function getBiddingHistory(productId) {
       'bidding_history.current_price',
       'bidding_history.created_at',
       'bidding_history.is_buy_now',
-      db.raw(`mask_name_alternating(users.fullname) AS bidder_name`)
+      'users.fullname as bidder_name'
     )
     .orderBy('bidding_history.created_at', 'desc');
 }
