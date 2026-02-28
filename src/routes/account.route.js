@@ -1,5 +1,4 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
 import passport from '../utils/passport.js';
 import * as userModel from '../models/user.model.js';
 import * as upgradeRequestModel from '../models/upgradeRequest.model.js';
@@ -13,11 +12,11 @@ const router = express.Router();
 
 router.get('/ratings', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
-  
-  const { rating_point, reviews, totalReviews, positiveReviews, negativeReviews } = 
+
+  const { rating_point, reviews, totalReviews, positiveReviews, negativeReviews } =
     await AuthService.getUserRating(currentUserId);
-  
-  res.render('vwAccount/rating', { 
+
+  res.render('vwAccount/rating', {
     activeSection: 'ratings',
     rating_point,
     reviews,
@@ -63,41 +62,41 @@ router.get('/forgot-password', (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
   const result = await AuthService.requestPasswordReset(email);
-  
+
   if (!result.success) {
     return res.render('vwAccount/auth/forgot-password', {
       error_message: result.error,
     });
   }
-  
+
   return res.render('vwAccount/auth/verify-forgot-password-otp', {
     email,
   });
 });
 router.post('/verify-forgot-password-otp', async (req, res) => {
-    const { email, otp } = req.body;
-    const result = await AuthService.verifyOtp(email, otp, 'reset_password');
-    
-    if (!result.success) {
-      return res.render('vwAccount/auth/verify-forgot-password-otp', {
-        email,
-        error_message: result.error,
-      });
-    }
-    
-    return res.render('vwAccount/auth/reset-password', { email });
-});
-router.post('/resend-forgot-password-otp', async (req, res) => {
-  const { email } = req.body;
-  const result = await AuthService.resendOtp(email, 'reset_password');
-  
+  const { email, otp } = req.body;
+  const result = await AuthService.verifyOtp(email, otp, 'reset_password');
+
   if (!result.success) {
     return res.render('vwAccount/auth/verify-forgot-password-otp', {
       email,
       error_message: result.error,
     });
   }
-  
+
+  return res.render('vwAccount/auth/reset-password', { email });
+});
+router.post('/resend-forgot-password-otp', async (req, res) => {
+  const { email } = req.body;
+  const result = await AuthService.resendOtp(email, 'reset_password');
+
+  if (!result.success) {
+    return res.render('vwAccount/auth/verify-forgot-password-otp', {
+      email,
+      error_message: result.error,
+    });
+  }
+
   return res.render('vwAccount/auth/verify-forgot-password-otp', {
     email,
     info_message: 'We have sent a new OTP to your email. Please check your inbox.',
@@ -105,23 +104,23 @@ router.post('/resend-forgot-password-otp', async (req, res) => {
 });
 router.post('/reset-password', async (req, res) => {
   const { email, new_password, confirm_new_password } = req.body;
-  
+
   if (new_password !== confirm_new_password) {
     return res.render('vwAccount/auth/reset-password', {
       email,
       error_message: 'Passwords do not match.',
     });
   }
-  
+
   const result = await AuthService.resetPassword(email, new_password);
-  
+
   if (!result.success) {
     return res.render('vwAccount/auth/reset-password', {
       email,
       error_message: result.error,
     });
   }
-  
+
   return res.render('vwAccount/auth/signin', {
     success_message: 'Your password has been reset. You can sign in now.',
   });
@@ -130,48 +129,23 @@ router.post('/reset-password', async (req, res) => {
 router.post('/signin', async function (req, res) {
   const { email, password } = req.body;
 
-  const user = await userModel.findByEmail(email);
-  if (!user) {
+  const result = await AuthService.authenticateUser(email, password);
+
+  if (!result.success) {
     return res.render('vwAccount/auth/signin', {
-      error_message: 'Invalid email or password',
+      error_message: result.error,
       old: { email },
     });
   }
 
-  const isPasswordValid = bcrypt.compareSync(password, user.password_hash);
-  if (!isPasswordValid) {
-    return res.render('vwAccount/auth/signin', {
-      error_message: 'Invalid email or password',
-      old: { email },
-    });
-  }
-
-  // Chưa verify email -> gửi OTP và chuyển sang trang verify
-  if (!user.email_verified) {
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-
-    await userModel.createOtp({
-      user_id: user.id,
-      otp_code: otp,
-      purpose: 'verify_email',
-      expires_at: expiresAt,
-    });
-
-    await sendMail({
-      to: email,
-      subject: 'Verify your Online Auction account',
-      html: EmailTemplates.otpEmail(otp)
-    });
-
+  if (!result.verified) {
     return res.redirect(
       `/account/verify-email?email=${encodeURIComponent(email)}`
     );
   }
 
-  // Đã verify -> login bình thường
   req.session.isAuthenticated = true;
-  req.session.authUser = user;
+  req.session.authUser = result.user;
   const returnUrl = req.session.returnUrl || '/';
   delete req.session.returnUrl;
   return res.redirect(returnUrl);
@@ -181,10 +155,10 @@ router.post('/signin', async function (req, res) {
 router.post('/signup', async function (req, res) {
   const { fullname, email, address, password, confirmPassword } = req.body;
   const recaptchaResponse = req.body['g-recaptcha-response'];
-  
+
   const userData = { fullname, email, address, password, confirmPassword };
   const validation = await AuthService.validateSignupInput(userData, recaptchaResponse);
-  
+
   if (Object.keys(validation.errors).length > 0) {
     return res.render('vwAccount/auth/signup', {
       errors: validation.errors,
@@ -195,7 +169,7 @@ router.post('/signup', async function (req, res) {
   }
 
   const result = await AuthService.registerUser(userData);
-  
+
   if (result.success) {
     return res.redirect(`/account/verify-email?email=${encodeURIComponent(result.email)}`);
   }
@@ -204,9 +178,9 @@ router.post('/signup', async function (req, res) {
 // POST /verify-email
 router.post('/verify-email', async (req, res) => {
   const { email, otp } = req.body;
-  
+
   const result = await AuthService.verifyOtp(email, otp, 'verify_email');
-  
+
   if (!result.success) {
     return res.render('vwAccount/auth/verify-otp', {
       email,
@@ -221,16 +195,16 @@ router.post('/verify-email', async (req, res) => {
 // POST /resend-otp
 router.post('/resend-otp', async (req, res) => {
   const { email } = req.body;
-  
+
   const result = await AuthService.resendOtp(email, 'verify_email');
-  
+
   if (!result.success) {
     return res.render('vwAccount/auth/verify-otp', {
       email,
       error_message: result.error,
     });
   }
-  
+
   return res.render('vwAccount/auth/verify-otp', {
     email,
     info_message: 'We have sent a new OTP to your email.',
@@ -269,73 +243,22 @@ router.get('/profile', isAuthenticated, async (req, res) => {
 // PUT /profile - XỬ LÝ UPDATE
 router.put('/profile', isAuthenticated, async (req, res) => {
   try {
-    // 1. Lấy dữ liệu từ form (Bổ sung address)
-    const { email, fullname, address, date_of_birth, old_password, new_password, confirm_new_password } = req.body;
     const currentUserId = req.session.authUser.id;
+    const result = await AuthService.updateProfile(currentUserId, req.body);
 
-    // Lấy thông tin user hiện tại
-    const currentUser = await userModel.findById(currentUserId);
-
-    // 2. KIỂM TRA MẬT KHẨU CŨ (Chỉ cho non-OAuth users)
-    if (!currentUser.oauth_provider) {
-      if (!old_password || !bcrypt.compareSync(old_password, currentUser.password_hash)) {
-        return res.render('vwAccount/profile', {
-          user: currentUser,
-          err_message: 'Password is incorrect!'
-        });
-      }
+    if (!result.success) {
+      return res.render('vwAccount/profile', {
+        user: result.user || req.session.authUser,
+        err_message: result.error
+      });
     }
 
-    // 3. KIỂM TRA TRÙNG EMAIL
-    if (email !== currentUser.email) {
-      const existingUser = await userModel.findByEmail(email);
-      if (existingUser) {
-        return res.render('vwAccount/profile', {
-          user: currentUser,
-          err_message: 'Email is already in use by another user.'
-        });
-      }
+    if (result.updatedUser) {
+      req.session.authUser = result.updatedUser;
     }
 
-    // 4. KIỂM TRA MẬT KHẨU MỚI (Chỉ cho non-OAuth users)
-    if (!currentUser.oauth_provider && new_password) {
-      if (new_password !== confirm_new_password) {
-        return res.render('vwAccount/profile', {
-          user: currentUser,
-          err_message: 'New passwords do not match.'
-        });
-      }
-    }
-
-    // 5. CHUẨN BỊ DỮ LIỆU UPDATE
-    const entity = {
-      email,
-      fullname,
-      address: address || currentUser.address,
-      date_of_birth: date_of_birth ? new Date(date_of_birth) : currentUser.date_of_birth,
-    };
-    
-    // Chỉ cập nhật password cho non-OAuth users
-    if (!currentUser.oauth_provider) {
-      entity.password_hash = new_password
-        ? bcrypt.hashSync(new_password, 10)
-        : currentUser.password_hash;
-    }
-
-    // 6. GỌI MODEL UPDATE (Model đã sửa để trả về Object)
-    const updatedUser = await userModel.update(currentUserId, entity);
-    console.log('Updated user result:', updatedUser);
-
-    // 7. CẬP NHẬT SESSION
-    if (updatedUser) {
-      delete updatedUser.password_hash;
-      req.session.authUser = updatedUser;
-    }
-
-    // 8. THÀNH CÔNG -> Redirect về trang profile kèm query success
     return res.redirect('/account/profile?success=true');
-
-  } 
+  }
   catch (err) {
     console.error(err);
     return res.render('vwAccount/profile', {
@@ -369,7 +292,7 @@ router.post('/request-upgrade', isAuthenticated, async (req, res) => {
 
   }
 });
-router.get('/watchlist', isAuthenticated ,async (req, res) => {
+router.get('/watchlist', isAuthenticated, async (req, res) => {
   const limit = 3;
   const page = parseInt(req.query.page) || 1;
   const offset = (page - 1) * limit;
@@ -397,7 +320,7 @@ router.get('/watchlist', isAuthenticated ,async (req, res) => {
 router.get('/bidding', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const biddingProducts = await autoBiddingModel.getBiddingProductsByBidderId(currentUserId);
-  
+
   res.render('vwAccount/bidding-products', {
     activeSection: 'bidding',
     products: biddingProducts
@@ -408,7 +331,7 @@ router.get('/bidding', isAuthenticated, async (req, res) => {
 router.get('/auctions', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const wonAuctions = await autoBiddingModel.getWonAuctionsByBidderId(currentUserId);
-  
+
   // Check if user has rated seller for each product
   for (let product of wonAuctions) {
     const review = await reviewModel.findByReviewerAndProduct(currentUserId, product.id);
@@ -421,7 +344,7 @@ router.get('/auctions', isAuthenticated, async (req, res) => {
       product.has_rated_seller = false;
     }
   }
-  
+
   res.render('vwAccount/won-auctions', {
     activeSection: 'auctions',
     products: wonAuctions
@@ -434,10 +357,10 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { seller_id, rating, comment } = req.body;
-    
+
     // Validate rating
     const ratingValue = rating === 'positive' ? 1 : -1;
-    
+
     // Check if already rated
     const existingReview = await reviewModel.findByReviewerAndProduct(currentUserId, productId);
     if (existingReview) {
@@ -456,7 +379,7 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
         comment: comment || null
       });
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error rating seller:', error);
@@ -470,15 +393,15 @@ router.put('/won-auctions/:productId/rate-seller', isAuthenticated, async (req, 
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { rating, comment } = req.body;
-    
+
     const ratingValue = rating === 'positive' ? 1 : -1;
-    
+
     // Update review
     await reviewModel.updateByReviewerAndProduct(currentUserId, productId, {
       rating: ratingValue,
       comment: comment || null
     });
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating rating:', error);

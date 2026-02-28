@@ -66,6 +66,40 @@ export const AuthService = {
     return { success: true, email: userData.email };
   },
 
+  async authenticateUser(email, password) {
+    const user = await userModel.findByEmail(email);
+    if (!user) {
+      return { success: false, error: 'Invalid email or password' };
+    }
+
+    const isPasswordValid = bcrypt.compareSync(password, user.password_hash);
+    if (!isPasswordValid) {
+      return { success: false, error: 'Invalid email or password' };
+    }
+
+    if (!user.email_verified) {
+      const otp = generateOtp();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await userModel.createOtp({
+        user_id: user.id,
+        otp_code: otp,
+        purpose: 'verify_email',
+        expires_at: expiresAt,
+      });
+
+      await sendMail({
+        to: email,
+        subject: 'Verify your Online Auction account',
+        html: EmailTemplates.otpEmail(otp)
+      });
+
+      return { success: true, verified: false, user };
+    }
+
+    return { success: true, verified: true, user };
+  },
+
   async requestPasswordReset(email) {
     const user = await userModel.findByEmail(email);
     if (!user) {
@@ -107,8 +141,8 @@ export const AuthService = {
       expires_at: expiresAt,
     });
 
-    const subject = purpose === 'verify_email' 
-      ? 'Verify your Online Auction account' 
+    const subject = purpose === 'verify_email'
+      ? 'Verify your Online Auction account'
       : 'New OTP for Password Reset';
 
     await sendMail({
@@ -169,11 +203,55 @@ export const AuthService = {
     return { success: true };
   },
 
+  async updateProfile(currentUserId, data) {
+    const { email, fullname, address, date_of_birth, old_password, new_password, confirm_new_password } = data;
+    const currentUser = await userModel.findById(currentUserId);
+
+    if (!currentUser.oauth_provider) {
+      if (!old_password || !bcrypt.compareSync(old_password, currentUser.password_hash)) {
+        return { success: false, error: 'Password is incorrect!', user: currentUser };
+      }
+    }
+
+    if (email !== currentUser.email) {
+      const existingUser = await userModel.findByEmail(email);
+      if (existingUser) {
+        return { success: false, error: 'Email is already in use by another user.', user: currentUser };
+      }
+    }
+
+    if (!currentUser.oauth_provider && new_password) {
+      if (new_password !== confirm_new_password) {
+        return { success: false, error: 'New passwords do not match.', user: currentUser };
+      }
+    }
+
+    const entity = {
+      email,
+      fullname,
+      address: address || currentUser.address,
+      date_of_birth: date_of_birth ? new Date(date_of_birth) : currentUser.date_of_birth,
+    };
+
+    if (!currentUser.oauth_provider) {
+      entity.password_hash = new_password
+        ? bcrypt.hashSync(new_password, 10)
+        : currentUser.password_hash;
+    }
+
+    const updatedUser = await userModel.update(currentUserId, entity);
+    if (updatedUser) {
+      delete updatedUser.password_hash;
+    }
+
+    return { success: true, updatedUser };
+  },
+
   async getUserRating(userId) {
     const ratingData = await reviewModel.calculateRatingPoint(userId);
     const rating_point = ratingData ? ratingData.ratingData.rating_point : 0;
     const reviews = await reviewModel.getReviewsByUserId(userId);
-    
+
     const totalReviews = reviews.length;
     const positiveReviews = reviews.filter(r => r.rating === 1).length;
     const negativeReviews = reviews.filter(r => r.rating === -1).length;

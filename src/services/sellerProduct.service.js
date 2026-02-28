@@ -7,13 +7,36 @@ import { sendMail } from '../utils/mailer.js';
 import { EmailTemplates } from './emailTemplate.service.js';
 
 export const SellerProductService = {
-  async createProduct(productData, product, imgs) {
+  async createProductFromRequest(product, sellerId) {
+    const createdAtUTC = new Date(product.created_at);
+    const endAtUTC = new Date(product.end_date);
+
+    const productData = {
+      seller_id: sellerId,
+      category_id: product.category_id,
+      name: product.name,
+      starting_price: product.start_price.replace(/,/g, ''),
+      step_price: product.step_price.replace(/,/g, ''),
+      buy_now_price: product.buy_now_price !== '' ? product.buy_now_price.replace(/,/g, '') : null,
+      created_at: createdAtUTC,
+      end_at: endAtUTC,
+      auto_extend: product.auto_extend === '1' ? true : false,
+      thumbnail: null,
+      description: product.description,
+      highest_bidder_id: null,
+      current_price: product.start_price.replace(/,/g, ''),
+      is_sold: null,
+      allow_unrated_bidder: product.allow_new_bidders === '1' ? true : false,
+      closed_at: null
+    };
+
     const returnedID = await productModel.addProduct(productData);
     const productId = returnedID[0].id;
 
+    const imgs = JSON.parse(product.imgs_list);
     const { savedMainPath, newImgPaths } = FileService.moveAndRenameProductImages(
-      productId, 
-      product.thumbnail, 
+      productId,
+      product.thumbnail,
       imgs
     );
 
@@ -28,9 +51,53 @@ export const SellerProductService = {
     return { success: true };
   },
 
-  async deleteProduct(productId, sellerId) {
-    const result = await productModel.cancelProduct(productId, sellerId);
-    return result;
+  async cancelAuction(productId, sellerId, reason, highest_bidder_id) {
+    await productModel.cancelProduct(productId, sellerId);
+
+    if (highest_bidder_id) {
+      const reviewModule = await import('../models/review.model.js');
+      const reviewData = {
+        reviewer_id: sellerId,
+        reviewee_id: highest_bidder_id,
+        product_id: productId,
+        rating: -1,
+        comment: reason || 'Auction cancelled by seller'
+      };
+      await reviewModule.createReview(reviewData);
+    }
+    return { success: true };
+  },
+
+  async rateBidder(productId, sellerId, rating, comment, highest_bidder_id) {
+    const ratingValue = rating === 'positive' ? 1 : -1;
+    const reviewModule = await import('../models/review.model.js');
+
+    const existingReview = await reviewModule.findByReviewerAndProduct(sellerId, productId);
+
+    if (existingReview) {
+      await reviewModule.updateByReviewerAndProduct(sellerId, productId, {
+        rating: ratingValue,
+        comment: comment || null
+      });
+    } else {
+      await reviewModule.createReview({
+        reviewer_id: sellerId,
+        reviewee_id: highest_bidder_id,
+        product_id: productId,
+        rating: ratingValue,
+        comment: comment || ''
+      });
+    }
+  },
+
+  async updateBidderRating(productId, sellerId, rating, comment, highest_bidder_id) {
+    const ratingValue = rating === 'positive' ? 1 : -1;
+    const reviewModule = await import('../models/review.model.js');
+
+    await reviewModule.updateReview(sellerId, highest_bidder_id, productId, {
+      rating: ratingValue,
+      comment: comment || ''
+    });
   },
 
   async appendDescription(productId, sellerId, description) {

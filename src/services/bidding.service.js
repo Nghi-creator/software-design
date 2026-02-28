@@ -7,145 +7,158 @@ import db from '../utils/db.js';
 import { sendMail } from '../utils/mailer.js';
 import { EmailTemplates } from './emailTemplate.service.js';
 
+async function validateProductForBid(product, userId) {
+  if (!product) throw new Error('Product not found');
+  if (product.is_sold === true) throw new Error('This product has already been sold');
+  if (product.seller_id === userId) throw new Error('You cannot bid on your own product');
+}
+
+async function validateBidderEligibility(trx, productId, userId, product) {
+  const isRejected = await trx('rejected_bidders')
+    .where('product_id', productId)
+    .where('bidder_id', userId)
+    .first();
+  if (isRejected) throw new Error('You have been rejected from bidding on this product by the seller');
+
+  const ratingPoint = await reviewModel.calculateRatingPoint(userId);
+  const userReviews = await reviewModel.getReviewsByUserId(userId);
+  const hasReviews = userReviews.length > 0;
+
+  if (!hasReviews) {
+    if (!product.allow_unrated_bidder) {
+      throw new Error('This seller does not allow unrated bidders to bid on this product.');
+    }
+  } else if (ratingPoint && ratingPoint.rating_point < 0) {
+    throw new Error('You are not eligible to place bids due to your rating.');
+  } else if (ratingPoint && ratingPoint.rating_point === 0) {
+    throw new Error('You are not eligible to place bids due to your rating.');
+  } else if (ratingPoint && ratingPoint.rating_point <= 0.8) {
+    throw new Error('Your rating point is not greater than 80%. You cannot place bids.');
+  }
+}
+
+function validateBidAmount(product, bidAmount, now) {
+  const endDate = new Date(product.end_at);
+  if (now > endDate) throw new Error('Auction has ended');
+
+  const currentPrice = parseFloat(product.current_price || product.starting_price);
+  if (bidAmount <= currentPrice) {
+    throw new Error(`Bid must be higher than current price (${currentPrice.toLocaleString()} VND)`);
+  }
+
+  const minIncrement = parseFloat(product.step_price);
+  if (bidAmount < currentPrice + minIncrement) {
+    throw new Error(`Bid must be at least ${minIncrement.toLocaleString()} VND higher than current price`);
+  }
+  return { currentPrice, minIncrement };
+}
+
+async function processAutoExtend(product, now) {
+  let extendedEndTime = null;
+  if (product.auto_extend) {
+    const settings = await systemSettingModel.getSettings();
+    const triggerMinutes = settings?.auto_extend_trigger_minutes;
+    const extendMinutes = settings?.auto_extend_duration_minutes;
+
+    const endTime = new Date(product.end_at);
+    const minutesRemaining = (endTime - now) / (1000 * 60);
+
+    if (minutesRemaining <= triggerMinutes) {
+      extendedEndTime = new Date(endTime.getTime() + extendMinutes * 60 * 1000);
+      product.end_at = extendedEndTime;
+    }
+  }
+  return extendedEndTime;
+}
+
+function calculateBidWin(product, userId, bidAmount, minIncrement) {
+  let newCurrentPrice;
+  let newHighestBidderId;
+  let newHighestMaxPrice;
+  let shouldCreateHistory = true;
+
+  const buyNowPrice = product.buy_now_price ? parseFloat(product.buy_now_price) : null;
+  let buyNowTriggered = false;
+
+  if (buyNowPrice && product.highest_bidder_id && product.highest_max_price && product.highest_bidder_id !== userId) {
+    const currentHighestMaxPrice = parseFloat(product.highest_max_price);
+    if (currentHighestMaxPrice >= buyNowPrice) {
+      newCurrentPrice = buyNowPrice;
+      newHighestBidderId = product.highest_bidder_id;
+      newHighestMaxPrice = currentHighestMaxPrice;
+      buyNowTriggered = true;
+    }
+  }
+
+  if (!buyNowTriggered) {
+    if (product.highest_bidder_id === userId) {
+      newCurrentPrice = parseFloat(product.current_price || product.starting_price);
+      newHighestBidderId = userId;
+      newHighestMaxPrice = bidAmount;
+      shouldCreateHistory = false;
+    }
+    else if (!product.highest_bidder_id || !product.highest_max_price) {
+      newCurrentPrice = product.starting_price;
+      newHighestBidderId = userId;
+      newHighestMaxPrice = bidAmount;
+    }
+    else {
+      const currentHighestMaxPrice = parseFloat(product.highest_max_price);
+      const currentHighestBidderId = product.highest_bidder_id;
+
+      if (bidAmount < currentHighestMaxPrice) {
+        newCurrentPrice = bidAmount;
+        newHighestBidderId = currentHighestBidderId;
+        newHighestMaxPrice = currentHighestMaxPrice;
+      }
+      else if (bidAmount === currentHighestMaxPrice) {
+        newCurrentPrice = bidAmount;
+        newHighestBidderId = currentHighestBidderId;
+        newHighestMaxPrice = currentHighestMaxPrice;
+      }
+      else {
+        newCurrentPrice = currentHighestMaxPrice + minIncrement;
+        newHighestBidderId = userId;
+        newHighestMaxPrice = bidAmount;
+      }
+    }
+
+    if (buyNowPrice && newCurrentPrice >= buyNowPrice) {
+      newCurrentPrice = buyNowPrice;
+      buyNowTriggered = true;
+    }
+  }
+
+  return { newCurrentPrice, newHighestBidderId, newHighestMaxPrice, shouldCreateHistory, buyNowTriggered };
+}
+
 export const BiddingService = {
   async placeBid(productId, userId, bidAmount) {
-    const result = await db.transaction(async (trx) => {
+    return await db.transaction(async (trx) => {
       const product = await trx('products')
         .where('id', productId)
         .forUpdate()
         .first();
-      
-      if (!product) {
-        throw new Error('Product not found');
-      }
+
+      await validateProductForBid(product, userId);
 
       const previousHighestBidderId = product.highest_bidder_id;
       const previousPrice = parseFloat(product.current_price || product.starting_price);
 
-      if (product.is_sold === true) {
-        throw new Error('This product has already been sold');
-      }
-
-      if (product.seller_id === userId) {
-        throw new Error('You cannot bid on your own product');
-      }
-
-      const isRejected = await trx('rejected_bidders')
-        .where('product_id', productId)
-        .where('bidder_id', userId)
-        .first();
-      
-      if (isRejected) {
-        throw new Error('You have been rejected from bidding on this product by the seller');
-      }
-
-      const ratingPoint = await reviewModel.calculateRatingPoint(userId);
-      const userReviews = await reviewModel.getReviewsByUserId(userId);
-      const hasReviews = userReviews.length > 0;
-      
-      if (!hasReviews) {
-        if (!product.allow_unrated_bidder) {
-          throw new Error('This seller does not allow unrated bidders to bid on this product.');
-        }
-      } else if (ratingPoint && ratingPoint.rating_point < 0) {
-        throw new Error('You are not eligible to place bids due to your rating.');
-      } else if (ratingPoint && ratingPoint.rating_point === 0) {
-        throw new Error('You are not eligible to place bids due to your rating.');
-      } else if (ratingPoint && ratingPoint.rating_point <= 0.8) {
-        throw new Error('Your rating point is not greater than 80%. You cannot place bids.');
-      }
+      await validateBidderEligibility(trx, productId, userId, product);
 
       const now = new Date();
-      const endDate = new Date(product.end_at);
-      if (now > endDate) {
-        throw new Error('Auction has ended');
-      }
+      const { minIncrement } = validateBidAmount(product, bidAmount, now);
 
-      const currentPrice = parseFloat(product.current_price || product.starting_price);
-      
-      if (bidAmount <= currentPrice) {
-        throw new Error(`Bid must be higher than current price (${currentPrice.toLocaleString()} VND)`);
-      }
+      const extendedEndTime = await processAutoExtend(product, now);
 
-      const minIncrement = parseFloat(product.step_price);
-      if (bidAmount < currentPrice + minIncrement) {
-        throw new Error(`Bid must be at least ${minIncrement.toLocaleString()} VND higher than current price`);
-      }
-
-      let extendedEndTime = null;
-      if (product.auto_extend) {
-        const settings = await systemSettingModel.getSettings();
-        const triggerMinutes = settings?.auto_extend_trigger_minutes;
-        const extendMinutes = settings?.auto_extend_duration_minutes;
-        
-        const endTime = new Date(product.end_at);
-        const minutesRemaining = (endTime - now) / (1000 * 60);
-        
-        if (minutesRemaining <= triggerMinutes) {
-          extendedEndTime = new Date(endTime.getTime() + extendMinutes * 60 * 1000);
-          product.end_at = extendedEndTime;
-        }
-      }
-
-      let newCurrentPrice;
-      let newHighestBidderId;
-      let newHighestMaxPrice;
-      let shouldCreateHistory = true;
-
-      const buyNowPrice = product.buy_now_price ? parseFloat(product.buy_now_price) : null;
-      let buyNowTriggered = false;
-      
-      if (buyNowPrice && product.highest_bidder_id && product.highest_max_price && product.highest_bidder_id !== userId) {
-        const currentHighestMaxPrice = parseFloat(product.highest_max_price);
-        
-        if (currentHighestMaxPrice >= buyNowPrice) {
-          newCurrentPrice = buyNowPrice;
-          newHighestBidderId = product.highest_bidder_id;
-          newHighestMaxPrice = currentHighestMaxPrice;
-          buyNowTriggered = true;
-        }
-      }
-
-      if (!buyNowTriggered) {
-        if (product.highest_bidder_id === userId) {
-          newCurrentPrice = parseFloat(product.current_price || product.starting_price);
-          newHighestBidderId = userId;
-          newHighestMaxPrice = bidAmount;
-          shouldCreateHistory = false;
-        }
-        else if (!product.highest_bidder_id || !product.highest_max_price) {
-          newCurrentPrice = product.starting_price;
-          newHighestBidderId = userId;
-          newHighestMaxPrice = bidAmount;
-        } 
-        else {
-          const currentHighestMaxPrice = parseFloat(product.highest_max_price);
-          const currentHighestBidderId = product.highest_bidder_id;
-
-          if (bidAmount < currentHighestMaxPrice) {
-            newCurrentPrice = bidAmount;
-            newHighestBidderId = currentHighestBidderId;
-            newHighestMaxPrice = currentHighestMaxPrice;
-          }
-          else if (bidAmount === currentHighestMaxPrice) {
-            newCurrentPrice = bidAmount;
-            newHighestBidderId = currentHighestBidderId;
-            newHighestMaxPrice = currentHighestMaxPrice;
-          }
-          else {
-            newCurrentPrice = currentHighestMaxPrice + minIncrement;
-            newHighestBidderId = userId;
-            newHighestMaxPrice = bidAmount;
-          }
-        }
-
-        if (buyNowPrice && newCurrentPrice >= buyNowPrice) {
-          newCurrentPrice = buyNowPrice;
-          buyNowTriggered = true;
-        }
-      }
-
-      const productSold = buyNowTriggered;
+      const {
+        newCurrentPrice,
+        newHighestBidderId,
+        newHighestMaxPrice,
+        shouldCreateHistory,
+        buyNowTriggered
+      } = calculateBidWin(product, userId, bidAmount, minIncrement);
 
       const updateData = {
         current_price: newCurrentPrice,
@@ -153,11 +166,10 @@ export const BiddingService = {
         highest_max_price: newHighestMaxPrice
       };
 
-      if (productSold) {
+      if (buyNowTriggered) {
         updateData.end_at = new Date();
         updateData.closed_at = new Date();
-      }
-      else if (extendedEndTime) {
+      } else if (extendedEndTime) {
         updateData.end_at = extendedEndTime;
       }
 
@@ -182,12 +194,12 @@ export const BiddingService = {
           created_at = NOW()
       `, [productId, userId, bidAmount]);
 
-      return { 
-        newCurrentPrice, 
-        newHighestBidderId, 
-        userId, 
+      return {
+        newCurrentPrice,
+        newHighestBidderId,
+        userId,
         bidAmount,
-        productSold,
+        productSold: buyNowTriggered,
         autoExtended: !!extendedEndTime,
         newEndTime: extendedEndTime,
         productName: product.name,
@@ -197,16 +209,14 @@ export const BiddingService = {
         priceChanged: previousPrice !== newCurrentPrice
       };
     });
-
-    return result;
   },
 
   async sendBidNotifications(result, productUrl) {
     const [seller, currentBidder, previousBidder] = await Promise.all([
       userModel.findById(result.sellerId),
       userModel.findById(result.userId),
-      result.previousHighestBidderId && result.previousHighestBidderId !== result.userId 
-        ? userModel.findById(result.previousHighestBidderId) 
+      result.previousHighestBidderId && result.previousHighestBidderId !== result.userId
+        ? userModel.findById(result.previousHighestBidderId)
         : null
     ]);
 
@@ -232,8 +242,8 @@ export const BiddingService = {
       const isWinning = result.newHighestBidderId === result.userId;
       emailPromises.push(sendMail({
         to: currentBidder.email,
-        subject: isWinning 
-          ? `✅ You're winning: ${result.productName}` 
+        subject: isWinning
+          ? `✅ You're winning: ${result.productName}`
           : `📊 Bid placed: ${result.productName}`,
         html: EmailTemplates.bidderConfirmation(
           currentBidder.fullname,
@@ -250,7 +260,7 @@ export const BiddingService = {
       const wasOutbid = result.newHighestBidderId !== result.previousHighestBidderId;
       emailPromises.push(sendMail({
         to: previousBidder.email,
-        subject: wasOutbid 
+        subject: wasOutbid
           ? `⚠️ You've been outbid: ${result.productName}`
           : `📊 Price updated: ${result.productName}`,
         html: EmailTemplates.priceUpdateNotification(
