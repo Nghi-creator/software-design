@@ -38,10 +38,13 @@
 }
 
 @keyframes floatPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
     box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   }
+
   50% {
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(var(--primary-rgb), 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -578,6 +581,7 @@ h3:hover::after {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -815,6 +819,7 @@ h3:hover::after {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -847,13 +852,14 @@ html {
 }
 
 .btn-watch-active {
-    background-color: #ffe6e6 !important;
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color) !important;
+  background-color: #ffe6e6 !important;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color) !important;
 }
+
 .btn-watch-active:hover {
-    background-color: var(--danger-color);
-    color: white !important;
+  background-color: var(--danger-color);
+  color: white !important;
 }
 
 /* Bidding History Signin Button - Join Us Style */
@@ -995,6 +1001,7 @@ html {
   color: var(--primary-color);
   font-weight: 600;
 }
+
 /* Reply button hover effect */
 .reply-btn:hover {
   background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-dark, #4a7fa3) 100%) !important;
@@ -1005,6 +1012,7 @@ html {
 .reply-btn:active {
   transform: translateY(0);
 }
+
 /* Contenteditable reply input styling */
 .reply-input {
   border: 1px solid #ced4da !important;
@@ -1048,4 +1056,113 @@ html {
 
 .bidder-name-link:hover {
   color: var(--primary-color);
+}
+
+/* SweetAlert2 Custom Buttons */
+.swal-btn-confirm,
+.swal-btn-cancel {
+  min-width: 120px !important;
+  padding: 12px 32px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+}
+
+.swal-btn-confirm {
+  background: linear-gradient(135deg, #72AEC8 0%, #5a9bb8 100%) !important;
+  color: white !important;
+}
+
+.swal-btn-confirm:hover {
+  background: linear-gradient(135deg, #5a9bb8 0%, #4a8aa8 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(114, 174, 200, 0.4) !important;
+}
+
+.swal-btn-confirm:active {
+  transform: translateY(0) !important;
+}
+
+.swal-btn-cancel {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.swal-btn-cancel:hover {
+  background: #5a6268 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.swal-btn-cancel:active {
+  transform: translateY(0) !important;
+}
+
+/* Bid Modal Enhancements */
+#decreaseBid:hover,
+#increaseBid:hover {
+  background-color: #72AEC8 !important;
+  color: white !important;
+  border-color: #72AEC8 !important;
+  transform: scale(1.05);
+}
+
+#decreaseBid:active,
+#increaseBid:active {
+  transform: scale(0.95);
+  background-color: #5a9bb8 !important;
+}
+
+#submitBidBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(114, 174, 200, 0.4) !important;
+}
+
+#submitBidBtn:active {
+  transform: translateY(0);
+}
+
+#bidModal .btn-outline-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#bidAmount {
+  transition: all 0.3s ease;
+}
+
+#bidAmount:focus {
+  box-shadow: 0 0 0 0.2rem rgba(114, 174, 200, 0.25);
+}
+
+/* Quick increment buttons */
+.quick-increment:hover,
+.quick-decrement:hover {
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+.quick-increment:active,
+.quick-decrement:active {
+  transform: scale(0.95);
+}
+
+/* Prevent layout shift when modal opens */
+body.modal-open {
+  padding-right: 0 !important;
+}
+
+/* Reply Input Enhancements */
+.reply-input:focus {
+  outline: none;
+  border-color: #72AEC8;
+  box-shadow: 0 0 0 0.2rem rgba(114, 174, 200, 0.15);
+}
+
+.mention {
+  color: #72AEC8;
+  font-weight: 600;
+  pointer-events: none;
 }
