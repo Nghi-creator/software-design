@@ -78,10 +78,11 @@
               </td>
               <td>
                 <div class="d-flex align-items-center">
-                  <div class="reviewer-avatar me-2">
-                    <i class="bi bi-person-fill"></i>
+                  <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2"
+                    style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person-fill" style="color: #667eea; font-size: 1.2rem;"></i>
                   </div>
-                  <span class="fw-500">{{bidder_name}}</span>
+                  <span class="fw-500">{{mask_name bidder_name}}</span>
                   {{#if is_buy_now}}
                   <span class="badge bg-info text-dark ms-2" style="font-size: 0.75rem;">
                     <i class="bi bi-lightning-fill"></i> Buy Now
@@ -89,27 +90,36 @@
                   {{/if}}
                 </div>
               </td>
-              <td>
-                <span class="fw-bold {{#if is_buy_now}}bid-price-buy-now{{else}}bid-price-positive{{/if}}"
-                  style="font-size: 1.1rem;">
-                  {{format_number current_price}} VND
-                </span>
-              </td>
-            </tr>
-            {{/each}}
-          </tbody>
-        </table>
       </div>
-      {{else}}
-      <div class="text-center py-5">
-        <i class="bi bi-inbox" style="font-size: 4rem; opacity: 0.2;"></i>
-        <h5 class="text-muted mt-3">No bidding history yet</h5>
-        <p class="text-muted small">Be the first one to place a bid on this product!</p>
-        <a href="/products/detail?id={{product.id}}" class="btn btn-primary mt-3">
-          <i class="bi bi-hammer me-2"></i>Place Your Bid
-        </a>
-      </div>
+      <span class="fw-500">{{bidder_name}}</span>
+      {{#if is_buy_now}}
+      <span class="badge bg-info text-dark ms-2" style="font-size: 0.75rem;">
+        <i class="bi bi-lightning-fill"></i> Buy Now
+      </span>
       {{/if}}
     </div>
+    </td>
+    <td>
+      <span class="fw-bold {{#if is_buy_now}}bid-price-buy-now{{else}}bid-price-positive{{/if}}"
+        style="font-size: 1.1rem;">
+        {{format_number current_price}} VND
+      </span>
+    </td>
+    </tr>
+    {{/each}}
+    </tbody>
+    </table>
   </div>
+  {{else}}
+  <div class="text-center py-5">
+    <i class="bi bi-inbox" style="font-size: 4rem; opacity: 0.2;"></i>
+    <h5 class="text-muted mt-3">No bidding history yet</h5>
+    <p class="text-muted small">Be the first one to place a bid on this product!</p>
+    <a href="/products/detail?id={{product.id}}" class="btn btn-primary mt-3">
+      <i class="bi bi-hammer me-2"></i>Place Your Bid
+    </a>
+  </div>
+  {{/if}}
+</div>
+</div>
 </div>
