@@ -94,5 +94,71 @@ export const EmailTemplates = {
             <p>Your new temporary password is: <strong style="color:red; font-size: 20px;">${defaultPassword}</strong></p>
             <p>Please log in and change this immediately.</p>
         </div>
-    `
+    `,
+    newBidNotification: (sellerName, productName, bidderName, currentPrice, previousPrice, productUrl, productSold) => {
+        const formattedPrice = new Intl.NumberFormat("en-US").format(currentPrice);
+        const formattedPrevious = previousPrice ? new Intl.NumberFormat("en-US").format(previousPrice) : '';
+        
+        let html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">New Bid Received!</h1>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${sellerName}</strong>,</p>
+                    <p>Great news! Your product has received a new bid:</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #72AEC8;">
+                        <h3 style="margin: 0 0 15px 0; color: #333;">${productName}</h3>
+                        <p style="margin: 5px 0;"><strong>Bidder:</strong> ${bidderName || 'Anonymous'}</p>
+                        <p style="margin: 5px 0;"><strong>Current Price:</strong></p>
+                        <p style="font-size: 28px; color: #72AEC8; margin: 5px 0; font-weight: bold;">
+                            ${formattedPrice} VND
+                        </p>
+                        ${previousPrice && previousPrice !== currentPrice ? `
+                        <p style="margin: 5px 0; color: #666; font-size: 14px;">
+                            <i>Previous: ${formattedPrevious} VND</i>
+                        </p>
+                        ` : ''}
+                    </div>
+                    ${productSold ? `
+                    <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                        <p style="margin: 0; color: #155724;"><strong>🎉 Buy Now price reached!</strong> Auction has ended.</p>
+                    </div>
+                    ` : ''}
+                    <div style="text-align: center; margin: 20px 0;">
+                        <a href="${productUrl}" style="display: inline-block; background: #72AEC8; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px;">View Product</a>
+                    </div>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction.</p>
+            </div>
+        `;
+        return html;
+    },
+    productDescriptionUpdated: (userFullname, productName, currentPrice, productUrl, newDescription) => {
+        const formattedPrice = new Intl.NumberFormat("en-US").format(currentPrice);
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Product Description Updated</h1>
+                </div>
+                <div style="padding: 20px; background: #f9f9f9;">
+                    <p>Hello <strong>${userFullname}</strong>,</p>
+                    <p>The seller has added new information to the product description:</p>
+                    <div style="background: white; padding: 15px; border-left: 4px solid #72AEC8; margin: 15px 0;">
+                        <h3 style="margin: 0 0 10px 0; color: #333;">${productName}</h3>
+                        <p style="margin: 0; color: #666;">Current Price: <strong style="color: #72AEC8;">${formattedPrice} VND</strong></p>
+                    </div>
+                    <div style="background: #fff8e1; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                        <p style="margin: 0 0 10px 0; font-weight: bold; color: #f57c00;">✉ New Description Added:</p>
+                        <div style="color: #333;">${newDescription}</div>
+                    </div>
+                    <p>View the product to see the full updated description:</p>
+                    <a href="${productUrl}" style="display: inline-block; background: #72AEC8; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; margin: 10px 0;">View Product</a>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    <p style="color: #999; font-size: 12px;">You received this email because you placed a bid or asked a question on this product.</p>
+                </div>
+            </div>
+        `;
+    }
 };

@@ -15,6 +15,7 @@ import * as invoiceModel from '../models/invoice.model.js';
 import * as orderChatModel from '../models/orderChat.model.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
+import { EmailTemplates } from '../services/emailTemplate.service.js';
 import db from '../utils/db.js';
 import multer from 'multer';
 import path from 'path';
@@ -601,41 +602,15 @@ router.post('/bid', isAuthenticated, async (req, res) => {
           emailPromises.push(sendMail({
           to: seller.email,
           subject: `💰 New bid on your product: ${result.productName}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0;">New Bid Received!</h1>
-              </div>
-              <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-                <p>Dear <strong>${seller.fullname}</strong>,</p>
-                <p>Great news! Your product has received a new bid:</p>
-                <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #72AEC8;">
-                  <h3 style="margin: 0 0 15px 0; color: #333;">${result.productName}</h3>
-                  <p style="margin: 5px 0;"><strong>Bidder:</strong> ${currentBidder ? currentBidder.fullname : 'Anonymous'}</p>
-                  <p style="margin: 5px 0;"><strong>Current Price:</strong></p>
-                  <p style="font-size: 28px; color: #72AEC8; margin: 5px 0; font-weight: bold;">
-                    ${new Intl.NumberFormat('en-US').format(result.newCurrentPrice)} VND
-                  </p>
-                  ${result.previousPrice !== result.newCurrentPrice ? `
-                  <p style="margin: 5px 0; color: #666; font-size: 14px;">
-                    <i>Previous: ${new Intl.NumberFormat('en-US').format(result.previousPrice)} VND</i>
-                  </p>
-                  ` : ''}
-                </div>
-                ${result.productSold ? `
-                <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                  <p style="margin: 0; color: #155724;"><strong>🎉 Buy Now price reached!</strong> Auction has ended.</p>
-                </div>
-                ` : ''}
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${productUrl}" style="display: inline-block; background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    View Product
-                  </a>
-                </div>
-              </div>
-              <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
-            </div>
-          `
+          html: EmailTemplates.newBidNotification(
+            seller.fullname,
+            result.productName,
+            currentBidder ? currentBidder.fullname : 'Anonymous',
+            result.newCurrentPrice,
+            result.previousPrice,
+            productUrl,
+            result.productSold
+          )
           }));
         }
 
