@@ -4,16 +4,14 @@ import * as reviewModel from '../models/review.model.js';
 import * as productDescUpdateModel from '../models/productDescriptionUpdate.model.js';
 import * as biddingHistoryModel from '../models/biddingHistory.model.js';
 import * as productCommentModel from '../models/productComment.model.js';
-import { sendMail } from '../utils/mailer.js';
 import { uploadMiddleware } from '../middlewares/upload.mdw.js';
-import { FileService } from '../services/file.service.js';
-import { EmailTemplates } from '../services/emailTemplate.service.js';
+import { SellerProductService } from '../services/sellerProduct.service.js';
 
 const router = express.Router();
 
 router.get('/', async function (req, res) {
     const sellerId = req.session.authUser.id;
-    const stats = await productModel.getSellerStats(sellerId);
+    const stats = await SellerProductService.getSellerStats(sellerId);
     res.render('vwSeller/dashboard', { stats });
 });
 
@@ -277,7 +275,6 @@ router.post('/products/:id/append-description', async function (req, res) {
             return res.status(400).json({ success: false, message: 'Description is required' });
         }
         
-        // Verify that the product belongs to the seller
         const product = await productModel.findByProductId2(productId, null);
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found' });
@@ -287,44 +284,7 @@ router.post('/products/:id/append-description', async function (req, res) {
             return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
         
-        // Add description update
-        await productDescUpdateModel.addUpdate(productId, description.trim());
-        
-        // Get unique bidders and commenters to notify
-        const [bidders, commenters] = await Promise.all([
-            biddingHistoryModel.getUniqueBidders(productId),
-            productCommentModel.getUniqueCommenters(productId)
-        ]);
-        
-        // Combine and deduplicate by email (exclude seller)
-        const notifyMap = new Map();
-        [...bidders, ...commenters].forEach(user => {
-            if (user.id !== sellerId && !notifyMap.has(user.email)) {
-                notifyMap.set(user.email, user);
-            }
-        });
-        
-        // Send email notifications (non-blocking)
-        const notifyUsers = Array.from(notifyMap.values());
-        if (notifyUsers.length > 0) {
-            const productUrl = `${req.protocol}://${req.get('host')}/products/detail?id=${productId}`;
-            
-            // Send emails in background (don't await)
-            Promise.all(notifyUsers.map(user => {
-                return sendMail({
-                    to: user.email,
-                    subject: `[Auction Update] New description added for "${product.name}"`,
-                    html: EmailTemplates.productDescriptionUpdated(
-                        user.fullname,
-                        product.name,
-                        product.current_price,
-                        productUrl,
-                        description.trim()
-                    )
-                }).catch(err => console.error('Failed to send email to', user.email, err));
-            })).catch(err => console.error('Email notification error:', err));
-        }
-        
+        await SellerProductService.appendDescription(productId, sellerId, description);
         res.json({ success: true, message: 'Description appended successfully' });
     } catch (error) {
         console.error('Append description error:', error);

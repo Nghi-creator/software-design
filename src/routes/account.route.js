@@ -7,29 +7,15 @@ import * as watchlistModel from '../models/watchlist.model.js';
 import * as reviewModel from '../models/review.model.js';
 import * as autoBiddingModel from '../models/autoBidding.model.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
-import { sendMail } from '../utils/mailer.js';
-import { verifyRecaptcha } from '../utils/recaptcha.util.js';
-import { EmailTemplates } from '../services/emailTemplate.service.js';
+import { AuthService } from '../services/auth.service.js';
 
 const router = express.Router();
-
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 router.get('/ratings', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   
-  // // Get rating point
-  const ratingData = await reviewModel.calculateRatingPoint(currentUserId);
-  const rating_point = ratingData ? ratingData.rating_point : 0;
-  // // Get all reviews (model already excludes rating=0)
-  const reviews = await reviewModel.getReviewsByUserId(currentUserId);
-  
-  // // Calculate statistics
-  const totalReviews = reviews.length;
-  const positiveReviews = reviews.filter(r => r.rating === 1).length;
-  const negativeReviews = reviews.filter(r => r.rating === -1).length;
+  const { rating_point, reviews, totalReviews, positiveReviews, negativeReviews } = 
+    await AuthService.getUserRating(currentUserId);
   
   res.render('vwAccount/rating', { 
     activeSection: 'ratings',
@@ -76,70 +62,42 @@ router.get('/forgot-password', (req, res) => {
 });
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
-  const user = await userModel.findByEmail(email);
-  if (!user) {
+  const result = await AuthService.requestPasswordReset(email);
+  
+  if (!result.success) {
     return res.render('vwAccount/auth/forgot-password', {
-      error_message: 'Email not found.',
+      error_message: result.error,
     });
   }
-  const otp = generateOtp();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-  await userModel.createOtp({
-    user_id: user.id,
-    otp_code: otp,
-    purpose: 'reset_password',
-    expires_at: expiresAt,
-  });
-  await sendMail({
-    to: email,
-    subject: 'Password Reset for Your Online Auction Account',
-    html: EmailTemplates.otpEmail(otp)
-  });
+  
   return res.render('vwAccount/auth/verify-forgot-password-otp', {
     email,
   });
 });
 router.post('/verify-forgot-password-otp', async (req, res) => {
     const { email, otp } = req.body;
-    const user = await userModel.findByEmail(email);
-    const otpRecord = await userModel.findValidOtp({
-      user_id: user.id,
-      otp_code: otp,
-      purpose: 'reset_password',
-    });
-    console.log('Verifying OTP for email:', email, ' OTP:', otp);
-    if (!otpRecord) {
-      console.log('Invalid OTP attempt for email:', email);
+    const result = await AuthService.verifyOtp(email, otp, 'reset_password');
+    
+    if (!result.success) {
       return res.render('vwAccount/auth/verify-forgot-password-otp', {
         email,
-        error_message: 'Invalid or expired OTP.',
+        error_message: result.error,
       });
     }
-    await userModel.markOtpUsed(otpRecord.id);
+    
     return res.render('vwAccount/auth/reset-password', { email });
 });
 router.post('/resend-forgot-password-otp', async (req, res) => {
   const { email } = req.body;
-  const user = await userModel.findByEmail(email);
-  if (!user) {
+  const result = await AuthService.resendOtp(email, 'reset_password');
+  
+  if (!result.success) {
     return res.render('vwAccount/auth/verify-forgot-password-otp', {
       email,
-      error_message: 'User not found.',
+      error_message: result.error,
     });
   }
-  const otp = generateOtp();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-  await userModel.createOtp({
-    user_id: user.id,
-    otp_code: otp,
-    purpose: 'reset_password',
-    expires_at: expiresAt,
-  });
-  await sendMail({
-    to: email,
-    subject: 'New OTP for Password Reset',
-    html: EmailTemplates.otpEmail(otp)
-  });
+  
   return res.render('vwAccount/auth/verify-forgot-password-otp', {
     email,
     info_message: 'We have sent a new OTP to your email. Please check your inbox.',
@@ -147,21 +105,23 @@ router.post('/resend-forgot-password-otp', async (req, res) => {
 });
 router.post('/reset-password', async (req, res) => {
   const { email, new_password, confirm_new_password } = req.body;
+  
   if (new_password !== confirm_new_password) {
     return res.render('vwAccount/auth/reset-password', {
       email,
       error_message: 'Passwords do not match.',
     });
   }
-  const user = await userModel.findByEmail(email);
-  if (!user) {
+  
+  const result = await AuthService.resetPassword(email, new_password);
+  
+  if (!result.success) {
     return res.render('vwAccount/auth/reset-password', {
       email,
-      error_message: 'User not found.',
+      error_message: result.error,
     });
   }
-  const hashedPassword = bcrypt.hashSync(new_password, 10);
-  await userModel.update(user.id, { password_hash: hashedPassword });
+  
   return res.render('vwAccount/auth/signin', {
     success_message: 'Your password has been reset. You can sign in now.',
   });
@@ -220,144 +180,60 @@ router.post('/signin', async function (req, res) {
 // POST /signup
 router.post('/signup', async function (req, res) {
   const { fullname, email, address, password, confirmPassword } = req.body;
-  
-  // --- SỬA LỖI: Lấy token recaptcha từ body ---
   const recaptchaResponse = req.body['g-recaptcha-response'];
   
-  const errors = {};
-  const old = { fullname, email, address };
-  const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
-
-  const isCaptchaValid = await verifyRecaptcha(recaptchaResponse);
-  if (!isCaptchaValid) {
-      errors.captcha = 'Captcha verification failed. Please try again.';
-  }
-
-  if (!fullname) errors.fullname = 'Full name is required';
-  if (!address) errors.address = 'Address is required';
-  if (!email) errors.email = 'Email is required';
-
-  const isEmailExist = await userModel.findByEmail(email);
-  if (isEmailExist) errors.email = 'Email is already in use';
-
-  if (!password) errors.password = 'Password is required';
-  if (password !== confirmPassword)
-    errors.confirmPassword = 'Passwords do not match';
-
-  if (Object.keys(errors).length > 0) {
+  const userData = { fullname, email, address, password, confirmPassword };
+  const validation = await AuthService.validateSignupInput(userData, recaptchaResponse);
+  
+  if (Object.keys(validation.errors).length > 0) {
     return res.render('vwAccount/auth/signup', {
-      errors,
-      old,
+      errors: validation.errors,
+      old: validation.old,
+      recaptchaSiteKey: validation.recaptchaSiteKey,
       error_message: 'Please correct the errors below.',
     });
   }
 
-  const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-  console.log(hashedPassword);
-  const user = {
-    email: req.body.email,
-    fullname: req.body.fullname,
-    address: req.body.address,
-    password_hash: hashedPassword,
-    role: 'bidder',
-  };
-
-  const newUser = await userModel.add(user);
-
-  const otp = generateOtp();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-
-  console.log('User id: ', newUser.id, ' OTP: ', otp);
-
-  await userModel.createOtp({
-    user_id: newUser.id,
-    otp_code: otp,
-    purpose: 'verify_email',
-    expires_at: expiresAt,
-  });
-
-  await sendMail({
-    to: email,
-    subject: 'Verify your Online Auction account',
-    html: EmailTemplates.otpEmail(otp)
-  });
-
-  // Chuyển sang trang verify email (GET /verify-email)
-  return res.redirect(
-    `/account/verify-email?email=${encodeURIComponent(email)}`
-  );
+  const result = await AuthService.registerUser(userData);
+  
+  if (result.success) {
+    return res.redirect(`/account/verify-email?email=${encodeURIComponent(result.email)}`);
+  }
 });
 
 // POST /verify-email
 router.post('/verify-email', async (req, res) => {
   const { email, otp } = req.body;
-
-  const user = await userModel.findByEmail(email);
-  if (!user) {
-    return res.render('vwAccount/verify-otp', {
-      email,
-      error_message: 'User not found.',
-    });
-  }
-
-  const otpRecord = await userModel.findValidOtp({
-    user_id: user.id,
-    otp_code: otp,
-    purpose: 'verify_email',
-  });
-
-  if (!otpRecord) {
+  
+  const result = await AuthService.verifyOtp(email, otp, 'verify_email');
+  
+  if (!result.success) {
     return res.render('vwAccount/auth/verify-otp', {
       email,
-      error_message: 'Invalid or expired OTP.',
+      error_message: result.error,
     });
   }
 
-  await userModel.markOtpUsed(otpRecord.id);
-  await userModel.verifyUserEmail(user.id);
-
-  req.session.success_message =
-    'Your email has been verified. You can sign in now.';
+  req.session.success_message = 'Your email has been verified. You can sign in now.';
   return res.redirect('/account/signin');
 });
 
 // POST /resend-otp
 router.post('/resend-otp', async (req, res) => {
   const { email } = req.body;
-
-  const user = await userModel.findByEmail(email);
-  if (!user) {
+  
+  const result = await AuthService.resendOtp(email, 'verify_email');
+  
+  if (!result.success) {
     return res.render('vwAccount/auth/verify-otp', {
       email,
-      error_message: 'User not found.',
+      error_message: result.error,
     });
   }
-
-  if (user.email_verified) {
-    return res.render('vwAccount/auth/signin', {
-      success_message: 'Your email is already verified. Please sign in.',
-    });
-  }
-
-  const otp = generateOtp();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-
-  await userModel.createOtp({
-    user_id: user.id,
-    otp_code: otp,
-    purpose: 'verify_email',
-    expires_at: expiresAt,
-  });
-
-  await sendMail({
-    to: email,
-    subject: 'New OTP for email verification',
-    html: EmailTemplates.otpEmail(otp)
-  });
-
-  return res.render('vwAccount/verify-otp', {
+  
+  return res.render('vwAccount/auth/verify-otp', {
     email,
-    info_message: 'We have sent a new OTP to your email. Please check your inbox.',
+    info_message: 'We have sent a new OTP to your email.',
   });
 });
 

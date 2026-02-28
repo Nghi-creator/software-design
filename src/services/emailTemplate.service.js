@@ -160,5 +160,75 @@ export const EmailTemplates = {
                 </div>
             </div>
         `;
+    },
+    sellerReplyNotification: (recipientName, productName, sellerName, productUrl) => {
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">Seller Response on Product</h2>
+                <p>Dear <strong>${recipientName}</strong>,</p>
+                <p>The seller has responded to a question on a product you're interested in:</p>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Product:</strong> ${productName}</p>
+                    <p><strong>Seller:</strong> ${sellerName}</p>
+                </div>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${productUrl}" style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Product</a>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 12px;">This is an automated message from Online Auction. Please do not reply to this email.</p>
+            </div>
+        `;
+    },
+    newQuestionNotification: (commenterName, productName, productUrl) => {
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">New Question About Your Product</h2>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Product:</strong> ${productName}</p>
+                    <p><strong>From:</strong> ${commenterName}</p>
+                </div>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${productUrl}" style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Product & Answer</a>
+                </div>
+            </div>
+        `;
+    },
+    newReplyNotification: (commenterName, productName, productUrl) => {
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">New Reply on Your Product</h2>
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <p><strong>Product:</strong> ${productName}</p>
+                    <p><strong>From:</strong> ${commenterName}</p>
+                </div>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${productUrl}" style="display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Product & Reply</a>
+                </div>
+            </div>
+        `;
+    },
+    rejectedBidderNotification: (bidderName, productName, sellerName, productUrl) => {
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">Bid Rejected</h1>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${bidderName}</strong>,</p>
+                    <p>We regret to inform you that the seller has rejected your bid on the following product:</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                        <h3 style="margin: 0 0 10px 0; color: #333;">${productName}</h3>
+                        <p style="margin: 5px 0; color: #666;"><strong>Seller:</strong> ${sellerName}</p>
+                    </div>
+                    <p style="color: #666;">This means you can no longer place bids on this specific product.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${productUrl}" style="display: inline-block; background: #72AEC8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Browse Other Auctions</a>
+                    </div>
+                    <p style="color: #888; font-size: 13px;">If you believe this was done in error, please contact our support team.</p>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction.</p>
+            </div>
+        `;
     }
 };
