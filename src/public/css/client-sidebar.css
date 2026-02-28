@@ -6,7 +6,7 @@
 @import url('../shared/sidebar-shared.css');
 
 :root {
-  --sidebar-accent-color: #72AEC8;
-  --sidebar-accent-hover: #5a95b0;
-  --sidebar-accent-rgb: 114, 174, 200;
+  --sidebar-accent-color: var(--primary-color);
+  --sidebar-accent-hover: var(--primary-hover);
+  --sidebar-accent-rgb: var(--primary-rgb);
 }

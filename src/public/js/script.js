@@ -11,44 +11,103 @@
       $(".search-popup").toggleClass("is-visible");
     });
 
-    ($(".search-popup-trigger").on("click", function (b) {
+    $(".search-popup-trigger").on("click", function (b) {
       b.preventDefault();
-      ($(".search-popup").addClass("is-visible"),
-        setTimeout(function () {
-          $(".search-popup").find("#search-popup").focus();
-        }, 350));
-    }),
-      $(".search-popup").on("click", function (b) {
-        ($(b.target).is(".search-popup-close") ||
-          $(b.target).is(".search-popup-close svg") ||
-          $(b.target).is(".search-popup-close path") ||
-          $(b.target).is(".search-popup")) &&
-          (b.preventDefault(), $(this).removeClass("is-visible"));
-      }),
-      $(document).keyup(function (b) {
-        "27" === b.which && $(".search-popup").removeClass("is-visible");
-      }));
+      $(".search-popup").addClass("is-visible");
+      setTimeout(function () {
+        $(".search-popup").find("#search-popup").focus();
+      }, 350);
+    });
+
+    // KISS principle applied: simplified click outside check
+    $(".search-popup").on("click", function (b) {
+      if ($(b.target).closest(".search-popup-close").length || $(b.target).is(".search-popup")) {
+        b.preventDefault();
+        $(this).removeClass("is-visible");
+      }
+    });
+
+    $(document).keyup(function (b) {
+      if (b.which === 27) {
+        $(".search-popup").removeClass("is-visible");
+      }
+    });
   };
 
   var initProductQty = function () {
     $(".product-qty").each(function () {
       var $el_product = $(this);
-      var quantity = 0;
 
       $el_product.find(".quantity-right-plus").click(function (e) {
         e.preventDefault();
-        var quantity = parseInt($el_product.find("#quantity").val());
+        var quantity = parseInt($el_product.find("#quantity").val(), 10) || 0;
         $el_product.find("#quantity").val(quantity + 1);
       });
 
       $el_product.find(".quantity-left-minus").click(function (e) {
         e.preventDefault();
-        var quantity = parseInt($el_product.find("#quantity").val());
+        var quantity = parseInt($el_product.find("#quantity").val(), 10) || 0;
         if (quantity > 0) {
           $el_product.find("#quantity").val(quantity - 1);
         }
       });
     });
+  };
+
+  var initSliders = function () {
+    if (typeof Swiper === "undefined") return;
+
+    var mainSwiper = new Swiper(".main-swiper", {
+      speed: 500,
+      navigation: {
+        nextEl: ".swiper-arrow-prev",
+        prevEl: ".swiper-arrow-next",
+      },
+    });
+
+    var testimonialSwiper = new Swiper(".testimonial-swiper", {
+      loop: true,
+      navigation: {
+        nextEl: ".swiper-arrow-prev",
+        prevEl: ".swiper-arrow-next",
+      },
+    });
+
+    // DRY principle applied: Reuse configuration for grid product sliders
+    var productGridConfig = {
+      slidesPerView: 5,
+      spaceBetween: 10,
+      breakpoints: {
+        0: {
+          slidesPerView: 2,
+          spaceBetween: 20,
+        },
+        1200: {
+          slidesPerView: 5,
+          spaceBetween: 20,
+        },
+      },
+    };
+
+    var productSwiper = new Swiper(
+      ".product-swiper",
+      $.extend(true, {}, productGridConfig, {
+        pagination: {
+          el: "#mobile-products .swiper-pagination",
+          clickable: true,
+        },
+      })
+    );
+
+    var productWatchSwiper = new Swiper(
+      ".product-watch-swiper",
+      $.extend(true, {}, productGridConfig, {
+        pagination: {
+          el: "#smart-watches .swiper-pagination",
+          clickable: true,
+        },
+      })
+    );
   };
 
   $(document).ready(function () {
@@ -61,60 +120,6 @@
       searchModal.addEventListener("shown.bs.modal", () => searchInput.focus());
     }
 
-    if (typeof Swiper !== "undefined") {
-      var mainSwiper = new Swiper(".main-swiper", {
-        speed: 500,
-        navigation: {
-          nextEl: ".swiper-arrow-prev",
-          prevEl: ".swiper-arrow-next",
-        },
-      });
-
-      var productSwiper = new Swiper(".product-swiper", {
-        slidesPerView: 5,
-        spaceBetween: 10,
-        pagination: {
-          el: "#mobile-products .swiper-pagination",
-          clickable: true,
-        },
-        breakpoints: {
-          0: {
-            slidesPerView: 2,
-            spaceBetween: 20,
-          },
-          1200: {
-            slidesPerView: 5,
-            spaceBetween: 20,
-          },
-        },
-      });
-
-      var productWatchSwiper = new Swiper(".product-watch-swiper", {
-        slidesPerView: 5,
-        spaceBetween: 10,
-        pagination: {
-          el: "#smart-watches .swiper-pagination",
-          clickable: true,
-        },
-        breakpoints: {
-          0: {
-            slidesPerView: 2,
-            spaceBetween: 20,
-          },
-          1200: {
-            slidesPerView: 5,
-            spaceBetween: 20,
-          },
-        },
-      });
-
-      var testimonialSwiper = new Swiper(".testimonial-swiper", {
-        loop: true,
-        navigation: {
-          nextEl: ".swiper-arrow-prev",
-          prevEl: ".swiper-arrow-next",
-        },
-      });
-    }
+    initSliders();
   });
 })(jQuery);

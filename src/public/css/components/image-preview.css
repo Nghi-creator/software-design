@@ -34,7 +34,7 @@
   position: absolute;
   top: 5px;
   right: 5px;
-  background: rgba(220, 53, 69, 0.9);
+  background: rgba(var(--danger-rgb), 0.9);
   color: white;
   border: none;
   border-radius: 50%;
@@ -51,7 +51,7 @@
 }
 
 .image-preview-item .remove-btn:hover {
-  background: rgba(220, 53, 69, 1);
+  background: rgba(var(--danger-rgb), 1);
   transform: scale(1.1);
 }
 
