@@ -36,3 +36,12 @@
     background-color: var(--danger-color);
     color: white;
 }
+
+.btn-admin-warning {
+    transition: all 0.3s ease;
+}
+
+.btn-admin-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+}
