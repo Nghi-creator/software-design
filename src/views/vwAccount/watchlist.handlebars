@@ -40,25 +40,25 @@
 
       {{!-- CONTENT --}}
       {{#if (eq products.length 0)}}
-      <div class="alert alert-info text-center py-5 rounded">
-        <h5 class="mb-3">Your watchlist is empty</h5>
-        <a href="/" class="btn btn-primary">Home</a>
-      </div>
-      {{else}}
-
-      {{!-- PRODUCT GRID --}}
-      <div class="row g-4">
-        {{#each products}}
-        <div class="col-md-6 col-lg-4">
-          {{> product-card this isAuthenticated=../isAuthenticated isWatchlistView=true}}
-        </div>
-        {{/each}}
-      </div>
-
-      {{!-- PAGINATION --}}
-      {{> pagination}}
-      {{/if}}
-
+      {{> alerts}}
+      <h5 class="mb-3">Your watchlist is empty</h5>
+      <a href="/" class="btn btn-primary">Home</a>
     </div>
+    {{else}}
+
+    {{!-- PRODUCT GRID --}}
+    <div class="row g-4">
+      {{#each products}}
+      <div class="col-md-6 col-lg-4">
+        {{> product-card this isAuthenticated=../isAuthenticated isWatchlistView=true}}
+      </div>
+      {{/each}}
+    </div>
+
+    {{!-- PAGINATION --}}
+    {{> pagination}}
+    {{/if}}
+
   </div>
+</div>
 </div>
