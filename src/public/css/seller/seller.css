@@ -11,3 +11,32 @@
 @import url('../vendors/quill-custom.css');
 @import url('../vendors/uppy-custom.css');
 @import url('dashboard.css');
+
+/* ============================================
+   FIXES & UTILITIES
+   ============================================ */
+
+/* Fix button click area for dynamically generated buttons */
+.btn-save-update,
+.btn-delete-update,
+.btn-append-desc {
+   position: relative;
+   z-index: 10;
+   pointer-events: auto;
+}
+
+/* Prevent Quill editor from overlapping buttons in accordion */
+.accordion-body {
+   position: relative;
+}
+
+.accordion-body>div[id^="editor-"] {
+   margin-bottom: 1rem;
+   position: relative;
+   z-index: 1;
+}
+
+/* Ensure consistent card header height with buttons */
+.card-header h5 {
+   line-height: 1.5;
+}

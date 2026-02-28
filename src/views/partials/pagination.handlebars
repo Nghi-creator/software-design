@@ -1,0 +1,58 @@
+<div class="pagination-wrapper mt-5 mb-4">
+    <nav aria-label="Product pagination" class="d-flex justify-content-center">
+        <ul class="pagination pagination-custom mb-0">
+            {{#if (gt currentPage 1)}}
+            <li class="page-item">
+                <a class="page-link page-link-custom rounded-3"
+                    href="?{{#if categoryId}}catid={{categoryId}}&{{/if}}{{#if q}}q={{q}}&{{/if}}page={{subtract currentPage 1}}{{#if sort}}&sort={{sort}}{{/if}}{{#if logic}}&logic={{logic}}{{/if}}"
+                    aria-label="Previous">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {{else}}
+            <li class="page-item disabled">
+                <span class="page-link page-link-custom rounded-3">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            </li>
+            {{/if}}
+
+            {{#each (getPaginationRange currentPage totalPages)}}
+            {{#if (eq this.type "number")}}
+            {{#if (eq this.number ../currentPage)}}
+            <li class="page-item active">
+                <span class="page-link page-link-custom page-link-active rounded-3">{{this.number}}</span>
+            </li>
+            {{else}}
+            <li class="page-item">
+                <a class="page-link page-link-custom rounded-3"
+                    href="?{{#if ../categoryId}}catid={{../categoryId}}&{{/if}}{{#if ../q}}q={{../q}}&{{/if}}page={{this.number}}{{#if ../sort}}&sort={{../sort}}{{/if}}{{#if ../logic}}&logic={{../logic}}{{/if}}">
+                    {{this.number}}
+                </a>
+            </li>
+            {{/if}}
+            {{else}}
+            <li class="page-item disabled">
+                <span class="page-link page-link-custom rounded-3">...</span>
+            </li>
+            {{/if}}
+            {{/each}}
+
+            {{#if (lt currentPage totalPages)}}
+            <li class="page-item">
+                <a class="page-link page-link-custom rounded-3"
+                    href="?{{#if categoryId}}catid={{categoryId}}&{{/if}}{{#if q}}q={{q}}&{{/if}}page={{add currentPage 1}}{{#if sort}}&sort={{sort}}{{/if}}{{#if logic}}&logic={{logic}}{{/if}}"
+                    aria-label="Next">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {{else}}
+            <li class="page-item disabled">
+                <span class="page-link page-link-custom rounded-3">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+            </li>
+            {{/if}}
+        </ul>
+    </nav>
+</div>

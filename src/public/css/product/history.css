@@ -1,0 +1,72 @@
+/* Bidding History Styles */
+.history-header {
+    background: linear-gradient(135deg, #72AEC8 0%, #5a9bb8 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 10px 30px rgba(114, 174, 200, 0.2);
+}
+
+.history-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.history-card:hover {
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+}
+
+.product-info-box {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.bid-row:hover {
+    background-color: #f8faff;
+}
+
+.back-btn {
+    background: white;
+    color: #72AEC8;
+    border: 2px solid white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn:hover {
+    background: transparent;
+    color: white;
+    border-color: white;
+    transform: translateX(-5px);
+}
+
+.bid-row .reviewer-avatar {
+    width: 40px;
+    height: 40px;
+    background: rgba(114, 174, 200, 0.1);
+    color: #72AEC8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bid-price-positive {
+    color: #28a745;
+}
+
+.bid-price-buy-now {
+    color: #0dcaf0;
+}
