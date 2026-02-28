@@ -8,6 +8,14 @@ export const BID_COUNT_SUBQUERY = `
   ) AS bid_count
 `;
 
+export const BID_COUNT_SUM_SUBQUERY = `
+  COALESCE(SUM((
+    SELECT COUNT(*)
+    FROM bidding_history
+    WHERE bidding_history.product_id = products.id
+  )), 0)
+`;
+
 export function findAll() {
   return db('products')
     .leftJoin('users as bidder', 'products.highest_bidder_id', 'bidder.id')
@@ -547,13 +555,7 @@ export function findAllProductsBySellerId(sellerId) {
     .where('seller_id', sellerId)
     .select(
       'products.*', 'categories.name as category_name',
-      db.raw(`
-        (
-          SELECT COUNT(*) 
-          FROM bidding_history 
-          WHERE bidding_history.product_id = products.id
-        ) AS bid_count
-      `),
+      db.raw(BID_COUNT_SUBQUERY),
       db.raw(`
         CASE
           WHEN is_sold IS TRUE THEN 'Sold'
@@ -574,13 +576,7 @@ export function findActiveProductsBySellerId(sellerId) {
     .whereNull('closed_at')
     .select(
       'products.*', 'categories.name as category_name', 
-      db.raw(`
-        (
-          SELECT COUNT(*) 
-          FROM bidding_history 
-          WHERE bidding_history.product_id = products.id
-        ) AS bid_count
-      `)
+      db.raw(BID_COUNT_SUBQUERY)
     );
 }
 
@@ -600,13 +596,7 @@ export function findPendingProductsBySellerId(sellerId) {
       'categories.name as category_name', 
       'users.fullname as highest_bidder_name',
       'users.email as highest_bidder_email',
-      db.raw(`
-        (
-          SELECT COUNT(*) 
-          FROM bidding_history
-          WHERE bidding_history.product_id = products.id
-        ) AS bid_count
-      `)
+      db.raw(BID_COUNT_SUBQUERY)
     );
 }
 
@@ -622,13 +612,7 @@ export function findSoldProductsBySellerId(sellerId) {
       'categories.name as category_name',
       'users.fullname as highest_bidder_name',
       'users.email as highest_bidder_email',
-      db.raw(`
-        (
-          SELECT COUNT(*) 
-          FROM bidding_history
-          WHERE bidding_history.product_id = products.id
-        ) AS bid_count
-      `)
+      db.raw(BID_COUNT_SUBQUERY)
     );
 }
 
@@ -663,13 +647,7 @@ export async function getSoldProductsStats(sellerId) {
     .select(
       db.raw('COUNT(products.id) as total_sold'),
       db.raw('COALESCE(SUM(products.current_price), 0) as total_revenue'),
-      db.raw(`
-        COALESCE(SUM((
-          SELECT COUNT(*)
-          FROM bidding_history
-          WHERE bidding_history.product_id = products.id
-        )), 0) as total_bids
-      `)
+      db.raw(BID_COUNT_SUM_SUBQUERY + ' as total_bids')
     )
     .first();
 
@@ -692,13 +670,7 @@ export async function getPendingProductsStats(sellerId) {
     .select(
       db.raw('COUNT(products.id) as total_pending'),
       db.raw('COALESCE(SUM(products.current_price), 0) as pending_revenue'),
-      db.raw(`
-        COALESCE(SUM((
-          SELECT COUNT(*)
-          FROM bidding_history
-          WHERE bidding_history.product_id = products.id
-        )), 0) as total_bids
-      `)
+      db.raw(BID_COUNT_SUM_SUBQUERY + ' as total_bids')
     )
     .first();
 
