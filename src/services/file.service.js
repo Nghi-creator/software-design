@@ -44,4 +44,30 @@ export const FileService = {
     }
     return { savedMainPath, newImgPaths };
   },
+
+  moveUploadedFiles: (tempUrls, type) => {
+    if (!tempUrls || tempUrls.length === 0) return [];
+    const targetFolder = `public/images/${type}`;
+    const publicPath = path.join(process.cwd(), "public");
+    const targetPath = path.join(publicPath, "images", type);
+
+    if (!fs.existsSync(targetPath))
+      fs.mkdirSync(targetPath, { recursive: true });
+
+    const permanentUrls = [];
+    for (const tempUrl of tempUrls) {
+      const tempFilename = path.basename(tempUrl);
+      const tempPath = path.join(publicPath, tempUrl);
+      const ext = path.extname(tempFilename);
+      const newFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const newPath = path.join(targetPath, newFilename);
+      const newUrl = `images/${type}/${newFilename}`;
+
+      if (fs.existsSync(tempPath)) {
+        fs.renameSync(tempPath, newPath);
+        permanentUrls.push(newUrl);
+      }
+    }
+    return permanentUrls;
+  },
 };
