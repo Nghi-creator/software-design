@@ -1,0 +1,17 @@
+{{#if error_message}}
+<div class="alert alert-danger text-center">
+    <i class="bi bi-exclamation-octagon-fill"></i> {{error_message}}
+</div>
+{{/if}}
+
+{{#if success_message}}
+<div class="alert alert-success text-center">
+    <i class="bi bi-check-circle-fill"></i> {{success_message}}
+</div>
+{{/if}}
+
+{{#if info_message}}
+<div class="alert alert-info text-center">
+    <i class="bi bi-info-circle-fill"></i> {{info_message}}
+</div>
+{{/if}}
