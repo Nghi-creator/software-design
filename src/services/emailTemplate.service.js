@@ -230,5 +230,65 @@ export const EmailTemplates = {
                 <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction.</p>
             </div>
         `;
+    },
+    bidderConfirmation: (bidderName, productName, bidAmount, currentPrice, isWinning, productUrl) => {
+        const formattedBid = new Intl.NumberFormat("en-US").format(bidAmount);
+        const formattedPrice = new Intl.NumberFormat("en-US").format(currentPrice);
+        const color = isWinning ? '#28a745' : '#ffc107';
+        
+        return `
+            <div style="font-family: Arial, sans-serif;600px; margin: 0 auto;">
+                <div max-width:  style="background: linear-gradient(135deg, ${color} 0%, ${isWinning ? '#218838' : '#e0a800'} 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">${isWinning ? "You're Winning!" : "Bid Placed"}</h1>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${bidderName}</strong>,</p>
+                    <p>${isWinning ? 'Congratulations! Your bid has been placed and you are currently the highest bidder!' : 'Your bid has been placed. However, another bidder has a higher maximum bid.'}</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid ${color};">
+                        <h3 style="margin: 0 0 15px 0; color: #333;">${productName}</h3>
+                        <p style="margin: 5px 0;"><strong>Your Max Bid:</strong> ${formattedBid} VND</p>
+                        <p style="margin: 5px 0;"><strong>Current Price:</strong></p>
+                        <p style="font-size: 28px; color: ${color}; margin: 5px 0; font-weight: bold;">${formattedPrice} VND</p>
+                    </div>
+                    ${!isWinning ? `
+                    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                        <p style="margin: 0; color: #856404;"><strong>💡 Tip:</strong> Consider increasing your maximum bid to improve your chances of winning.</p>
+                    </div>
+                    ` : ''}
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${productUrl}" style="display: inline-block; background: #72AEC8; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Auction</a>
+                    </div>
+                </div>
+                <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
+            </div>
+        `;
+    },
+    priceUpdateNotification: (bidderName, productName, newPrice, previousPrice, wasOutbid, productUrl) => {
+        const formattedNew = new Intl.NumberFormat("en-US").format(newPrice);
+        const formattedPrev = new Intl.NumberFormat("en-US").format(previousPrice);
+        const color = wasOutbid ? '#dc3545' : '#ffc107';
+        
+        return `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, ${color} 0%, ${wasOutbid ? '#c82333' : '#e0a800'} 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">${wasOutbid ? "You've Been Outbid!" : "Price Updated"}</h1>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${bidderName}</strong>,</p>
+                    ${wasOutbid ? `<p>Unfortunately, another bidder has placed a higher bid on the product you were winning:</p>` : `<p>Good news! You're still the highest bidder, but the current price has been updated:</p>`}
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid ${color};">
+                        <h3 style="margin: 0 0 15px 0; color: #333;">${productName}</h3>
+                        ${!wasOutbid ? `<p style="margin: 5px 0; color: #28a745;"><strong>✓ You're still winning!</strong></p>` : ''}
+                        <p style="margin: 5px 0;"><strong>New Current Price:</strong></p>
+                        <p style="font-size: 28px; color: ${color}; margin: 5px 0; font-weight: bold;">${formattedNew} VND</p>
+                        <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;"><i>Previous price: ${formattedPrev} VND</i></p>
+                    </div>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${productUrl}" style="display: inline-block; background: ${wasOutbid ? '#28a745' : '#72AEC8'}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">${wasOutbid ? 'Place New Bid' : 'View Auction'}</a>
+                    </div>
+                </div>
+                <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
+            </div>
+        `;
     }
 };
