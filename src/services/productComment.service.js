@@ -16,7 +16,7 @@ export const ProductCommentService = {
     return { success: true };
   },
 
-  async notifyComment(product, seller, commenter, productUrl) {
+  async notifyComment(product, seller, commenter, productUrl, parentId) {
     const isSellerReplying = commenter.id === product.seller_id;
 
     if (isSellerReplying && parentId) {
@@ -80,15 +80,15 @@ export const ProductCommentService = {
 
     const html = isReply
       ? EmailTemplates.newReplyNotification(
-          commenter.fullname,
-          product.name,
-          productUrl,
-        )
+        commenter.fullname,
+        product.name,
+        productUrl,
+      )
       : EmailTemplates.newQuestionNotification(
-          commenter.fullname,
-          product.name,
-          productUrl,
-        );
+        commenter.fullname,
+        product.name,
+        productUrl,
+      );
 
     await sendMail({
       to: seller.email,
