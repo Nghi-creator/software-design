@@ -19,7 +19,6 @@
       }, 350);
     });
 
-    // KISS principle applied: simplified click outside check
     $(".search-popup").on("click", function (b) {
       if ($(b.target).closest(".search-popup-close").length || $(b.target).is(".search-popup")) {
         b.preventDefault();
@@ -73,7 +72,6 @@
       },
     });
 
-    // DRY principle applied: Reuse configuration for grid product sliders
     var productGridConfig = {
       slidesPerView: 5,
       spaceBetween: 10,
