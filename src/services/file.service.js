@@ -70,4 +70,13 @@ export const FileService = {
     }
     return permanentUrls;
   },
+
+  parsePostgresArray: (pgArrayString) => {
+    if (!pgArrayString || typeof pgArrayString !== 'string') return pgArrayString;
+    return pgArrayString
+      .replace(/^\{/, '')
+      .replace(/\}$/, '')
+      .split(',')
+      .filter(item => item);
+  }
 };

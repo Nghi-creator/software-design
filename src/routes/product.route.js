@@ -18,6 +18,7 @@ import { ProductCommentService } from '../services/productComment.service.js';
 import { RejectedBidderService } from '../services/rejectedBidder.service.js';
 import db from '../utils/db.js';
 import { OrderService } from '../services/order.service.js';
+import { FileService } from '../services/file.service.js';
 import { uploadImageMiddleware } from '../middlewares/upload.mdw.js';
 const router = express.Router();
 
@@ -451,28 +452,11 @@ router.get('/complete-order', isAuthenticated, async (req, res) => {
 
   // Parse PostgreSQL arrays to JavaScript arrays
   if (paymentInvoice && paymentInvoice.payment_proof_urls) {
-    console.log('Original payment_proof_urls:', paymentInvoice.payment_proof_urls);
-    console.log('Type:', typeof paymentInvoice.payment_proof_urls);
-
-    if (typeof paymentInvoice.payment_proof_urls === 'string') {
-      // PostgreSQL returns array as string like: {url1,url2,url3}
-      paymentInvoice.payment_proof_urls = paymentInvoice.payment_proof_urls
-        .replace(/^\{/, '')
-        .replace(/\}$/, '')
-        .split(',')
-        .filter(url => url);
-      console.log('Parsed payment_proof_urls:', paymentInvoice.payment_proof_urls);
-    }
+    paymentInvoice.payment_proof_urls = FileService.parsePostgresArray(paymentInvoice.payment_proof_urls);
   }
 
   if (shippingInvoice && shippingInvoice.shipping_proof_urls) {
-    if (typeof shippingInvoice.shipping_proof_urls === 'string') {
-      shippingInvoice.shipping_proof_urls = shippingInvoice.shipping_proof_urls
-        .replace(/^\{/, '')
-        .replace(/\}$/, '')
-        .split(',')
-        .filter(url => url);
-    }
+    shippingInvoice.shipping_proof_urls = FileService.parsePostgresArray(shippingInvoice.shipping_proof_urls);
   }
 
   // Fetch chat messages
