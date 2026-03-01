@@ -1,6 +1,6 @@
 import db from '../utils/db.js';
 
-export async function findByCategoryId(id){
+export async function findByCategoryId(id) {
     // Lấy thông tin category chính
     const category = await db('categories as c')
         .leftJoin('categories as parent', 'c.parent_id', 'parent.id')
@@ -15,8 +15,10 @@ export async function findByCategoryId(id){
         .groupBy('c.id', 'c.name', 'c.parent_id', 'parent.name')
         .where('c.id', id)
         .first();
-    
-    return category;
+
+    // Call the specific business logic block strictly from the service tier
+    const categoryService = await import('../services/category.service.js');
+    return await categoryService.getCategoryWithProductCount(category, id);
 }
 export function findAll() {
     return db('categories as c')
@@ -56,7 +58,7 @@ export function updateCategory(id, category) {
 
 export function deleteCategory(id) {
     return db('categories').where('id', id).del();
-} 
+}
 export function isCategoryHasProducts(id) {
     return db('products').where('category_id', id).first();
 }

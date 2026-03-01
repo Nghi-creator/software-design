@@ -48,14 +48,20 @@ export function clearCategoryCache() {
   };
 }
 
-export async function getCategoryWithProductCount(id) {
-  const category = await categoryModel.findByCategoryId(id);
+import db from '../utils/db.js';
+
+export async function getCategoryWithProductCount(category, id) {
   if (!category) return null;
 
-  const childrenCount = await categoryModel.countChildrenProducts(id);
+  // Nếu category có con (level 1), cộng thêm product_count của các category con
+  const childrenCount = await db('categories as child')
+    .leftJoin('products as p', 'child.id', 'p.category_id')
+    .where('child.parent_id', id)
+    .count('p.id as total')
+    .first();
 
-  category.product_count =
-    parseInt(category.product_count) + parseInt(childrenCount || 0);
+  // Tổng = product_count của chính nó + product_count của con
+  category.product_count = parseInt(category.product_count) + parseInt(childrenCount?.total || 0);
 
   return category;
 }
