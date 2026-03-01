@@ -1,17 +1,8 @@
 /* Admin Product Edit - Form Styles */
+@import url('../shared.css');
 
 .form-label {
   font-weight: 600;
   color: #495057;
   font-family: var(--heading-font, "Jost", sans-serif);
-}
-
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(114, 174, 200, 0.25);
-}
-
-.required {
-  color: var(--danger-color);
 }

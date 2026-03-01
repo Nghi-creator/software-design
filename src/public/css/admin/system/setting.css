@@ -1,9 +1,12 @@
+/* Admin System Setting - Styles */
+@import url('../shared.css');
+
 .setting-card {
     transition: all 0.3s ease;
 }
 
 .setting-card:hover {
-    box-shadow: 0 4px 15px rgba(var(--sidebar-accent-rgb, 220, 53, 69), 0.15);
+    box-shadow: 0 4px 15px rgba(var(--theme-rgb), 0.15);
 }
 
 .setting-icon {
@@ -14,7 +17,7 @@
     justify-content: center;
     border-radius: 12px;
     font-size: 24px;
-    background: linear-gradient(135deg, var(--danger-color) 0%, var(--admin-hover) 100%);
+    background: linear-gradient(135deg, var(--theme-color) 0%, var(--admin-hover) 100%);
     color: white;
 }
 
@@ -27,9 +30,4 @@
 
 .form-control {
     border-left: none;
-}
-
-.form-control:focus {
-    border-color: var(--danger-color);
-    box-shadow: 0 0 0 0.2rem rgba(var(--sidebar-accent-rgb, 220, 53, 69), 0.25);
 }

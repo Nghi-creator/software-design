@@ -1,19 +1,10 @@
 /* Admin User Edit - Form Styles */
+@import url('../shared.css');
 
 .form-label {
   font-weight: 600;
   color: #495057;
-  font-family: "Jost", sans-serif;
-}
-
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(114, 174, 200, 0.25);
-}
-
-.required {
-  color: var(--danger-color);
+  font-family: var(--heading-font, "Jost", sans-serif);
 }
 
 /* Warning Button (Reset Password) */
@@ -30,8 +21,7 @@
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
 }
 
-/* Alert styling */
+/* Alert styling is now handled by variables and shared elements */
 .alert {
-  border-radius: 6px;
   border: none;
 }

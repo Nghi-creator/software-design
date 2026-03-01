@@ -1,7 +1,9 @@
-/* Product Card Specific Styles */
+/* External Assets */
+@import url('../shared/variables.css');
+@import url('../components/product-card.css');
+
+/* Product Card Specific View-specific Styles */
 .product-card {
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid #eee;
   display: flex;
   flex-direction: column;
   background: linear-gradient(to bottom, #ffffff 0%, #f8fbfd 100%);
@@ -17,7 +19,6 @@
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
   box-shadow: 0 12px 24px rgba(var(--primary-rgb), 0.15);
   border-color: var(--primary-color);
 }
